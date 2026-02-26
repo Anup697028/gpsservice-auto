@@ -43,29 +43,152 @@ service cloud.firestore {
         || isRole('ADMIN')
       );
 
+      // ========================================
+      // SINGLE REQUEST WORKFLOW
+      // ========================================
+
+      // RH approval ONLY at PARALLEL_REVIEW stage
       allow update: if isRole('RH')
         && resource.data.status == 'PARALLEL_REVIEW'
-        && onlyChanges(['rhApproval', 'status', 'updatedAt', 'history', 'rejectionReason', 'clientName', 'city']);
+        && !resource.data.isBulkRequest
+        && onlyChanges(['rhApproval', 'rhActionTaken', 'rhStatus', 'rhApprovedAt', 'status', 'updatedAt', 'history', 'rejectionReason', 'clientName', 'city']);
 
+      // RH approval when payment has already moved request to VENDOR_COORDINATION
+      allow update: if isRole('RH')
+        && resource.data.status == 'VENDOR_COORDINATION'
+        && !resource.data.isBulkRequest
+        && request.resource.data.status == 'VENDOR_COORDINATION'
+        && onlyChanges(['rhApproval', 'rhActionTaken', 'rhStatus', 'rhApprovedAt', 'status', 'updatedAt', 'history']);
+
+      // RH compliance approval can also be recorded after request completion
+      allow update: if isRole('RH')
+        && resource.data.status == 'COMPLETED'
+        && !resource.data.isBulkRequest
+        && request.resource.data.status == 'COMPLETED'
+        && onlyChanges(['rhApproval', 'rhActionTaken', 'rhStatus', 'rhApprovedAt', 'status', 'updatedAt', 'history']);
+
+      // RH rejection at PARALLEL_REVIEW
+      allow update: if isRole('RH')
+        && resource.data.status == 'PARALLEL_REVIEW'
+        && !resource.data.isBulkRequest
+        && request.resource.data.status == 'HALTED'
+        && onlyChanges(['status', 'rhStatus', 'rhActionTaken', 'rejectionReason', 'updatedAt', 'history']);
+
+      // Payment approval moves from PARALLEL_REVIEW to VENDOR_COORDINATION
+      allow update: if isRole('PAYMENT')
+        && resource.data.status == 'PARALLEL_REVIEW'
+        && !resource.data.isBulkRequest
+        && onlyChanges(['paymentApproval', 'paymentApproved', 'paymentRejected', 'paymentActionTaken', 'paymentStatus', 'paymentApprovedAt', 'status', 'updatedAt', 'history', 'rejectionReason', 'clientName', 'city']);
+
+      // Payment rejection at PARALLEL_REVIEW
+      allow update: if isRole('PAYMENT')
+        && resource.data.status == 'PARALLEL_REVIEW'
+        && !resource.data.isBulkRequest
+        && request.resource.data.status == 'HALTED'
+        && onlyChanges(['status', 'rejectionReason', 'paymentApproved', 'paymentRejected', 'paymentActionTaken', 'paymentStatus', 'paymentRejectedAt', 'updatedAt', 'history']);
+
+      // Single request vendor notification
+      allow update: if isRole('VENDOR')
+        && resource.data.status == 'VENDOR_COORDINATION'
+        && !resource.data.isBulkRequest
+        && onlyChanges(['vendorName', 'notificationTimestamp', 'vendorApprovedAt', 'vendorApprovedBy', 'vendorNotified', 'vendorActionTaken', 'approvedByVendor', 'notifiedAt', 'updatedAt', 'history']);
+
+      allow update: if isRole('VENDOR')
+        && resource.data.status == 'VENDOR_COORDINATION'
+        && !resource.data.isBulkRequest
+        && request.resource.data.status == 'COMPLETED'
+        && onlyChanges(['vendorName', 'status', 'notificationTimestamp', 'vendorApprovedAt', 'vendorApprovedBy', 'vendorNotified', 'vendorActionTaken', 'approvedByVendor', 'notifiedAt', 'updatedAt', 'history']);
+
+      // Single request vendor notification flags after status has moved to COMPLETED
+      allow update: if isRole('VENDOR')
+        && !resource.data.isBulkRequest
+        && resource.data.status == 'COMPLETED'
+        && onlyChanges(['vendorName', 'notificationTimestamp', 'vendorNotified', 'vendorActionTaken', 'approvedByVendor', 'notifiedAt', 'updatedAt']);
+
+      // ========================================
+      // BULK REQUEST WORKFLOW (PARALLEL APPROVAL)
+      // ========================================
+
+      // RH bulk approval at FO_CREATED (parallel workflow)
+      // Can stay at FO_CREATED (waiting for Payment) or move to PAYMENT_APPROVED (if Payment already approved)
+      // Allows vehicles array update for vehicle-level rhApproved fields
+      allow update: if isRole('RH')
+        && (resource.data.status in ['FO_CREATED', 'PAYMENT_PENDING', 'PAYMENT_APPROVED', 'SERVICE_INITIATED', 'COMPLETED'])
+        && resource.data.isBulkRequest == true
+        && (request.resource.data.status in ['FO_CREATED', 'PAYMENT_PENDING', 'PAYMENT_APPROVED', 'SERVICE_INITIATED', 'COMPLETED'])
+        && onlyChanges(['status', 'rhStatus', 'rhApprovedAt', 'bothApproved', 'vehicles', 'updatedAt', 'history']);
+
+      // RH bulk rejection at FO_CREATED
+      allow update: if isRole('RH')
+        && resource.data.status == 'FO_CREATED'
+        && resource.data.isBulkRequest == true
+        && request.resource.data.status == 'HALTED'
+        && onlyChanges(['status', 'rhStatus', 'rejectionReason', 'updatedAt', 'history']);
+
+      // Payment bulk approval at FO_CREATED (parallel workflow)
+      // Can stay at FO_CREATED (waiting for RH) or move to PAYMENT_APPROVED (if RH already approved)
+      allow update: if isRole('PAYMENT')
+        && (resource.data.status == 'FO_CREATED' || resource.data.status == 'PAYMENT_PENDING')
+        && resource.data.isBulkRequest == true
+        && (request.resource.data.status == 'FO_CREATED' || request.resource.data.status == 'PAYMENT_APPROVED')
+        && onlyChanges(['status', 'paymentStatus', 'paymentApprovedAt', 'bothApproved', 'vehicles', 'updatedAt', 'history']);
+
+      // Payment bulk rejection at FO_CREATED
+      allow update: if isRole('PAYMENT')
+        && (resource.data.status == 'FO_CREATED' || resource.data.status == 'PAYMENT_PENDING')
+        && resource.data.isBulkRequest == true
+        && request.resource.data.status in ['FO_CREATED', 'HALTED']
+        && onlyChanges(['status', 'paymentStatus', 'rejectionReason', 'vehicles', 'updatedAt', 'history']);
+
+      // Vendor bulk notification: PAYMENT_APPROVED → SERVICE_INITIATED
+      // Allows vehicles array update for vehicle-level vendorNotified fields
+      allow update: if isRole('VENDOR')
+        && resource.data.status == 'PAYMENT_APPROVED'
+        && resource.data.isBulkRequest == true
+        && request.resource.data.status == 'SERVICE_INITIATED'
+        && onlyChanges(['vendorStatus', 'vendorName', 'vendorApprovedAt', 'vendorApprovedBy', 'vendorNotified', 'notifiedAt', 'notificationTimestamp', 'status', 'vehicles', 'updatedAt', 'history']);
+
+      // Bulk request vendor notification flags after status has moved to SERVICE_INITIATED
+      allow update: if isRole('VENDOR')
+        && resource.data.isBulkRequest == true
+        && resource.data.status == 'SERVICE_INITIATED'
+        && onlyChanges(['vendorNotified', 'notifiedAt', 'notificationTimestamp', 'updatedAt']);
+
+      // Vendor can notify FO for bulk requests (after vendor notification)
+      allow update: if isRole('VENDOR')
+        && resource.data.isBulkRequest == true
+        && resource.data.status in ['SERVICE_INITIATED', 'COMPLETED']
+        && onlyChanges(['foNotified', 'notifiedAt', 'updatedAt']);
+
+      // Vendor can notify FO for single requests (after vendor notification)
+      allow update: if isRole('VENDOR')
+        && !resource.data.isBulkRequest
+        && resource.data.status in ['VENDOR_COORDINATION', 'SERVICE_INITIATED', 'COMPLETED']
+        && onlyChanges(['foNotified', 'notifiedAt', 'updatedAt']);
+
+      // Vendor can only READ PAYMENT_APPROVED bulk requests if bothApproved=true
+      // This is enforced through the read rule above that checks the status field
+
+      // ========================================
+      // COMMON OPERATIONS (Both Workflows)
+      // ========================================
+
+      // FO can cancel at various stages
       allow update: if isRole('FO')
         && isOwner(resource.data)
-        && resource.data.status in ['PARALLEL_REVIEW', 'VENDOR_COORDINATION', 'HALTED', 'REQUEST_CREATED']
+        && resource.data.status in ['PARALLEL_REVIEW', 'FO_CREATED', 'PAYMENT_PENDING', 'VENDOR_COORDINATION', 'HALTED', 'REQUEST_CREATED']
         && request.resource.data.status == 'CANCELLED'
         && onlyChanges(['status', 'updatedAt', 'history']);
 
-      allow update: if isRole('PAYMENT')
-        && resource.data.status == 'PARALLEL_REVIEW'
-        && onlyChanges(['paymentApproval', 'status', 'updatedAt', 'history', 'rejectionReason', 'clientName', 'city']);
+      // FO can remove one vehicle from a bulk request while still at FO_CREATED
+      allow update: if isRole('FO')
+        && isOwner(resource.data)
+        && resource.data.isBulkRequest == true
+        && resource.data.status == 'FO_CREATED'
+        && request.resource.data.status == 'FO_CREATED'
+        && onlyChanges(['vehicles', 'vehicleCount', 'status', 'updatedAt', 'history']);
 
-      allow update: if isRole('VENDOR')
-        && resource.data.status == 'VENDOR_COORDINATION'
-        && onlyChanges(['vendorName', 'notificationTimestamp', 'updatedAt', 'history']);
-
-      allow update: if isRole('VENDOR')
-        && resource.data.status == 'VENDOR_COORDINATION'
-        && request.resource.data.status == 'COMPLETED'
-        && onlyChanges(['vendorName', 'status', 'notificationTimestamp', 'updatedAt', 'history']);
-
+      // Admin override
       allow update: if isRole('ADMIN');
     }
   }

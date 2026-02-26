@@ -27,9 +27,14 @@ export const RhDashboard = () => {
   const fetchRequests = async () => {
     try {
       setLoading(true);
-      const pendingRequests = await requestService.getRhPendingRequests();
-      setRequests(pendingRequests);
-      setFilteredRequests(pendingRequests);
+      const allRequests = await requestService.getAllRequests();
+      const sortedRequests = allRequests.sort((a, b) => {
+        const dateA = a.createdAt?.toDate?.() || new Date(a.createdAt || 0);
+        const dateB = b.createdAt?.toDate?.() || new Date(b.createdAt || 0);
+        return dateB.getTime() - dateA.getTime();
+      });
+      setRequests(sortedRequests);
+      setFilteredRequests(sortedRequests);
     } catch (error) {
       showToast('Failed to fetch requests', 'error');
       console.error(error);

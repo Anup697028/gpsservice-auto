@@ -24,6 +24,26 @@ export const RequestCard = ({ request, onViewDetails, onAction, onCancel, showCa
     request.status !== 'COMPLETED' && 
     request.status !== 'CANCELLED';
 
+  const getBulkValue = (field: 'serviceType' | 'vehicleAvailabilityLocation' | 'vehicleAvailableTime') => {
+    const values = (request.vehicles ?? [])
+      .map((vehicle: any) => vehicle[field])
+      .filter(Boolean) as string[];
+    const uniqueValues = Array.from(new Set(values));
+    return uniqueValues.length > 0 ? uniqueValues.join(', ') : 'N/A';
+  };
+
+  const displayService = request.isBulkRequest
+    ? getBulkValue('serviceType')
+    : request.serviceType ?? 'N/A';
+
+  const displayAvailabilityLocation = request.isBulkRequest
+    ? getBulkValue('vehicleAvailabilityLocation')
+    : request.vehicleAvailabilityLocation;
+
+  const displayAvailableTime = request.isBulkRequest
+    ? getBulkValue('vehicleAvailableTime')
+    : request.vehicleAvailableTime;
+
   return (
     <div className="request-card">
       <div className="request-card-header">
@@ -38,26 +58,28 @@ export const RequestCard = ({ request, onViewDetails, onAction, onCancel, showCa
       <div className="request-card-body">
         <div className="request-info-row">
           <span className="label">Service:</span>
-          <span className="service-badge">{request.serviceType ?? 'N/A'}</span>
+          <span className="service-badge">{displayService}</span>
         </div>
         <div className="request-info-row">
           <span className="label">Vehicles:</span>
           <span>{request.vehicles?.length || 0}</span>
         </div>
-        <div className="request-info-row">
-          <span className="label">Destination:</span>
-          <span>{request.destination ?? 'N/A'}</span>
-        </div>
+        {displayAvailabilityLocation && displayAvailabilityLocation !== 'N/A' && (
+          <div className="request-info-row">
+            <span className="label">Availability Location:</span>
+            <span>{displayAvailabilityLocation}</span>
+          </div>
+        )}
+        {displayAvailableTime && displayAvailableTime !== 'N/A' && (
+          <div className="request-info-row">
+            <span className="label">Available Time:</span>
+            <span>{displayAvailableTime}</span>
+          </div>
+        )}
         <div className="request-info-row">
           <span className="label">Created:</span>
           <span>{formatDate(request.createdAt)}</span>
         </div>
-        {request.tripFromDate && (
-          <div className="request-info-row">
-            <span className="label">Trip:</span>
-            <span>{request.tripFromDate} {request.tripFromTime} → {request.tripToDate} {request.tripToTime}</span>
-          </div>
-        )}
         {request.status === 'COMPLETED' && request.vendorName && (
           <div className="request-info-row">
             <span className="label">Vendor:</span>

@@ -9,6 +9,20 @@ import { Modal } from '../components/Modal';
 import { Loader } from '../components/Loader';
 import '../styles/dashboard.css';
 
+const normalizeVehicles = (vehicles) => {
+  if (Array.isArray(vehicles)) {
+    return vehicles;
+  }
+
+  if (vehicles && typeof vehicles === 'object') {
+    return Object.keys(vehicles)
+      .sort((a, b) => Number(a) - Number(b))
+      .map((key) => vehicles[key] || {});
+  }
+
+  return [];
+};
+
 export const VendorDashboard = () => {
   const { user } = useAuth();
   const [requests, setRequests] = useState([]);
@@ -21,6 +35,9 @@ export const VendorDashboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
 
   const VENDORS = ['Fleetx', 'Wheelseye'];
+  const userRef = user
+    ? { id: user.uid, email: user.email, role: 'VENDOR' }
+    : null;
 
   useEffect(() => {
     fetchRequests();
@@ -29,7 +46,8 @@ export const VendorDashboard = () => {
   const fetchRequests = async () => {
     try {
       setLoading(true);
-      const vendorRequests = await requestService.getRequestsByStatus('VENDOR_COORDINATION');
+      // Fetch requests with PAYMENT_APPROVED status
+      const vendorRequests = await requestService.getRequestsByStatus('PAYMENT_APPROVED');
       setRequests(vendorRequests);
     } catch (error) {
       showToast('Failed to fetch requests', 'error');
@@ -43,6 +61,7 @@ export const VendorDashboard = () => {
     r.id.includes(searchTerm) ||
     r.clientName?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+  const selectedVehicles = selectedRequest ? normalizeVehicles(selectedRequest.vehicles) : [];
 
   const handleNotifyVendor = async () => {
     if (!selectedVendor) {
@@ -50,24 +69,49 @@ export const VendorDashboard = () => {
       return;
     }
 
+    if (!userRef || !selectedRequest) {
+      showToast('User info missing. Please re-login.', 'error');
+      return;
+    }
+
     setNotifying(true);
     try {
+      const isBulk = Boolean(selectedRequest.isBulkRequest);
+      const fallbackLtpocDetails = selectedRequest.driverDetails
+        ? selectedRequest.driverDetails.map((driver) => ({
+            vehicleNumber: driver.vehicleNumber,
+            ltpocName: driver.driverName,
+            ltpocPhone: driver.driverNumber,
+          }))
+        : undefined;
+
       // Send email notification to vendor
       await functionsService.sendVendorNotification({
         requestId: selectedRequest.id,
         vendorName: selectedVendor,
         clientName: selectedRequest.clientName,
         city: selectedRequest.city,
-        vehicles: selectedRequest.vehicles,
-        driverDetails: selectedRequest.driverDetails,
+        vehicles: normalizeVehicles(selectedRequest.vehicles),
+        ltpocDetails: selectedRequest.ltpocDetails || fallbackLtpocDetails,
+        serviceType: selectedRequest.serviceType,
+        vehicleAvailabilityLocation: selectedRequest.vehicleAvailabilityLocation,
+        vehicleAvailableTime: selectedRequest.vehicleAvailableTime,
       });
 
       // Update request in Firestore
-      await requestService.notifyVendor(
-        selectedRequest.id,
-        selectedVendor,
-        user.uid
-      );
+      if (isBulk) {
+        await requestService.notifyBulkVendor(
+          selectedRequest.id,
+          selectedVendor,
+          userRef
+        );
+      } else {
+        await requestService.notifyVendor(
+          selectedRequest.id,
+          selectedVendor,
+          userRef
+        );
+      }
 
       showToast(`${selectedVendor} notified successfully via email!`, 'success');
       setShowNotifyModal(false);
@@ -134,9 +178,37 @@ export const VendorDashboard = () => {
           <div className="modal-details">
             <p><strong>Request ID:</strong> {selectedRequest.id}</p>
             <p><strong>Status:</strong> {selectedRequest.status}</p>
+            {selectedRequest.isBulkRequest && (
+              <p style={{ background: '#e7f3ff', padding: '12px', borderRadius: '4px', margin: '12px 0' }}>
+                <strong>🚗 Bulk Request:</strong> {selectedRequest.vehicleCount || selectedVehicles.length || 0} vehicles
+                {selectedRequest.bothApproved && (
+                  <div style={{ marginTop: '8px', color: '#2e7d32', fontWeight: '600' }}>
+                    ✓ Both RH & Payment approved
+                  </div>
+                )}
+              </p>
+            )}
             <p><strong>Client:</strong> {selectedRequest.clientName}</p>
             <p><strong>City:</strong> {selectedRequest.city}</p>
-            <p><strong>Vehicles:</strong> {selectedRequest.vehicles?.length || 0}</p>
+            <p><strong>Service Type:</strong> {selectedRequest.serviceType}</p>
+            <p><strong>Vehicles:</strong> {selectedVehicles.length || 0}</p>
+
+            {/* Per-Vehicle Details for Bulk Requests */}
+            {selectedRequest.isBulkRequest && selectedVehicles.length > 0 && (
+              <div style={{ marginTop: '16px', padding: '12px', backgroundColor: '#f9f9f9', borderRadius: '4px' }}>
+                <h4 style={{ marginTop: '0' }}>Per-Vehicle Details</h4>
+                {selectedVehicles.map((vehicle, idx) => (
+                  <div key={idx} style={{ marginBottom: '12px', paddingBottom: '12px', borderBottom: idx < selectedVehicles.length - 1 ? '1px solid #ddd' : 'none' }}>
+                    <p><strong>Vehicle Number:</strong> {vehicle.vehicleNumber}</p>
+                    {vehicle.serviceType && <p><strong>Service Type:</strong> {vehicle.serviceType}</p>}
+                    {vehicle.vehicleAvailabilityLocation && <p><strong>Location:</strong> {vehicle.vehicleAvailabilityLocation}</p>}
+                    {vehicle.vehicleAvailableTime && <p><strong>Available Time:</strong> {vehicle.vehicleAvailableTime}</p>}
+                    {vehicle.ltpocName && <p><strong>LTPOC Name:</strong> {vehicle.ltpocName}</p>}
+                    {vehicle.ltpocPhone && <p><strong>LTPOC Phone:</strong> {vehicle.ltpocPhone}</p>}
+                  </div>
+                ))}
+              </div>
+            )}
 
             {selectedRequest.vendorName && (
               <div className="info-box">
@@ -148,18 +220,21 @@ export const VendorDashboard = () => {
               </div>
             )}
 
-            <h4>Driver Details</h4>
-            {selectedRequest.driverDetails?.map((driver, idx) => (
+            <h4>LTPOC Details</h4>
+            {(selectedRequest.ltpocDetails || selectedRequest.driverDetails || []).map((driver, idx) => (
               <div key={idx} className="driver-info">
                 <p><strong>Vehicle:</strong> {driver.vehicleNumber}</p>
-                <p><strong>Driver:</strong> {driver.driverName}</p>
-                <p><strong>Phone:</strong> {driver.driverNumber}</p>
+                <p><strong>LTPOC:</strong> {driver.ltpocName || driver.driverName}</p>
+                <p><strong>Phone:</strong> {driver.ltpocPhone || driver.driverNumber}</p>
               </div>
             ))}
 
             <AuditLog logs={selectedRequest.auditLog} />
 
-            {!selectedRequest.vendorName && selectedRequest.status === 'VENDOR_COORDINATION' && (
+            {!selectedRequest.vendorName && (
+              (!selectedRequest.isBulkRequest && selectedRequest.status === 'VENDOR_COORDINATION') ||
+              (selectedRequest.isBulkRequest && selectedRequest.status === 'PAYMENT_APPROVED')
+            ) && (
               <div className="action-buttons">
                 <button
                   className="btn btn-primary"

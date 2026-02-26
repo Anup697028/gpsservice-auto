@@ -23,7 +23,7 @@
   flex: 1;
   padding: 0.75rem 2.8rem 0.75rem 1rem;
   border-radius: 10px;
-  border: 1.5px solid var(--gray-300);
+  border: 1px solid var(--gray-200);
   background: #ffffff;
   font-size: 0.95rem;
   transition: all 0.25s ease;
@@ -34,7 +34,7 @@
 .searchable-dropdown-input:focus {
   outline: none;
   border-color: var(--primary);
-  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15), 0 4px 12px rgba(59, 130, 246, 0.1);
+  box-shadow: var(--focus), 0 4px 12px rgba(15, 23, 42, 0.08);
   transform: translateY(-1px);
 }
 
@@ -61,7 +61,7 @@
 
 .searchable-dropdown-toggle:hover:not(:disabled) {
   color: var(--primary);
-  background: rgba(59, 130, 246, 0.08);
+  background: rgba(31, 111, 120, 0.08);
   transform: scale(1.1);
 }
 
@@ -76,9 +76,9 @@
   left: 0;
   right: 0;
   background: #ffffff;
-  border: 2px solid var(--primary);
-  border-radius: 10px;
-  box-shadow: 0 15px 40px rgba(59, 130, 246, 0.25), 0 5px 15px rgba(15, 23, 42, 0.15);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-strong);
   max-height: 300px;
   overflow-y: auto;
   z-index: 9999;
@@ -113,25 +113,25 @@
 }
 
 .searchable-dropdown-item:hover {
-  background: linear-gradient(90deg, rgba(59, 130, 246, 0.08) 0%, rgba(59, 130, 246, 0.03) 100%);
+  background: linear-gradient(90deg, rgba(31, 111, 120, 0.08) 0%, rgba(31, 111, 120, 0.03) 100%);
   border-left-color: var(--primary);
   padding-left: 1.5rem;
 }
 
 .searchable-dropdown-item.active {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(37, 99, 235, 0.12) 100%);
+  background: linear-gradient(135deg, rgba(31, 111, 120, 0.12) 0%, rgba(21, 84, 90, 0.12) 100%);
   color: var(--primary);
   font-weight: 700;
   border-left-color: var(--primary);
 }
 
 .searchable-dropdown-item.highlighted {
-  background: linear-gradient(90deg, rgba(59, 130, 246, 0.1) 0%, rgba(59, 130, 246, 0.05) 100%);
-  border-left-color: rgba(59, 130, 246, 0.5);
+  background: linear-gradient(90deg, rgba(31, 111, 120, 0.1) 0%, rgba(31, 111, 120, 0.05) 100%);
+  border-left-color: rgba(31, 111, 120, 0.5);
 }
 
 .searchable-dropdown-item.active.highlighted {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(37, 99, 235, 0.2) 100%);
+  background: linear-gradient(135deg, rgba(31, 111, 120, 0.2) 0%, rgba(21, 84, 90, 0.2) 100%);
   border-left-color: var(--primary);
 }
 

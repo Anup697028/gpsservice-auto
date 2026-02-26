@@ -9,7 +9,8 @@
     "build": "tsc",
     "lint": "eslint --ext .ts src",
     "serve": "firebase emulators:start --only functions",
-    "deploy": "firebase deploy --only functions"
+    "deploy": "firebase deploy --only functions",
+    "backfill:rh-approved": "node scripts/backfill-rh-approved-flags.mjs"
   },
   "dependencies": {
     "cors": "^2.8.5",

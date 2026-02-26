@@ -1,6 +1,7 @@
 import React from 'react';
 import '../styles/badge.css';
 import type { RequestStatus } from '../types/workflow';
+import { getUnifiedStatusLabel } from '../utils/statusMapping';
 
 type StatusBadgeProps = {
   status: RequestStatus | 'UNKNOWN';
@@ -9,12 +10,16 @@ type StatusBadgeProps = {
 export const StatusBadge = ({ status }: StatusBadgeProps) => {
   const getStatusClass = (value: StatusBadgeProps['status']) => {
     switch (value) {
+      case 'FO_CREATED':
+      case 'PAYMENT_PENDING':
       case 'PARALLEL_REVIEW':
         return 'badge-amber';
-      case 'VENDOR_COORDINATION':
-        return 'badge-purple';
+      case 'PAYMENT_APPROVED':
+      case 'SERVICE_INITIATED':
       case 'COMPLETED':
         return 'badge-green';
+      case 'VENDOR_COORDINATION':
+        return 'badge-purple';
       case 'HALTED':
         return 'badge-red';
       case 'CANCELLED':
@@ -24,14 +29,9 @@ export const StatusBadge = ({ status }: StatusBadgeProps) => {
     }
   };
 
-  const labels: Record<string, string> = {
-    PARALLEL_REVIEW: 'Parallel Review',
-    VENDOR_COORDINATION: 'Vendor Coordination',
-    COMPLETED: 'Completed',
-    HALTED: 'Halted',
-    CANCELLED: 'Cancelled',
-    UNKNOWN: 'Unknown',
-  };
-
-  return <span className={`badge ${getStatusClass(status)}`}>{labels[status]}</span>;
+  return (
+    <span className={`badge ${getStatusClass(status)}`}>
+      {status === 'UNKNOWN' ? 'Unknown' : getUnifiedStatusLabel(status)}
+    </span>
+  );
 };

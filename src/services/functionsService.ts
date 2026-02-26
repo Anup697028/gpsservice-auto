@@ -1,4 +1,4 @@
-import { functions } from './firebase';
+import { auth, functions } from './firebase';
 import type { RequestRecord } from '../types/workflow';
 
 type OtpPayload = {
@@ -9,17 +9,58 @@ type OtpPayload = {
 type VendorNotificationPayload = {
   requestId: string;
   vendorName: string;
+  foEmail?: string | null;
   clientName?: string | null;
   city?: string | null;
-  destination?: string | null;
   serviceType?: string | null;
-  serviceCost?: number | null;
-  tripFromDate?: string | null;
-  tripFromTime?: string | null;
-  tripToDate?: string | null;
-  tripToTime?: string | null;
+  vehicleAvailabilityLocation?: string | null;
+  vehicleAvailableTime?: string | null;
   vehicles?: RequestRecord['vehicles'];
-  driverDetails?: RequestRecord['driverDetails'];
+  ltpocDetails?: RequestRecord['ltpocDetails'];
+  vehicleCount?: number;
+  isBulkRequest?: boolean;
+};
+
+type VendorBulkNotificationRow = {
+  requestId: string;
+  city?: string | null;
+  clientName?: string | null;
+  date?: string | null;
+  serviceType?: string | null;
+  vehicleNumber?: string | null;
+  vehicleAvailabilityLocation?: string | null;
+  vehicleAvailableTime?: string | null;
+  ltpocName?: string | null;
+  ltpocPhone?: string | null;
+  ltpocEmail?: string | null;
+  lpoAdditional?: string | null;
+};
+
+type VendorBulkNotificationPayload = {
+  vendorName: string;
+  requestIds?: string[];
+  rows: VendorBulkNotificationRow[];
+};
+
+type FoBulkNotificationPayload = {
+  requestIds: string[];
+  foEmail?: string;
+  foName?: string;
+  rows: Array<{
+    requestId: string;
+    status: string;
+    city: string;
+    clientName: string;
+    serviceType: string;
+    serviceCost: number | '';
+    vehicleNumber: string;
+    vehicleAvailabilityLocation: string;
+    vehicleAvailableTime: string;
+    ltpocName: string;
+    ltpocPhone: string;
+    lpoAdditional: string;
+    createdAt: string;
+  }>;
 };
 
 // Allow env override, otherwise dev uses local server and prod uses deployed Functions.
@@ -55,6 +96,40 @@ export const functionsService = {
       throw new Error('Failed to send vendor notification');
     }
     
+    return await response.json();
+  },
+
+  sendVendorBulkNotification: async (payload: VendorBulkNotificationPayload) => {
+    const response = await fetch(`${FUNCTIONS_BASE_URL}/sendVendorBulkNotification`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to send vendor bulk notification');
+    }
+
+    return await response.json();
+  },
+
+  sendFoBulkNotification: async (payload: FoBulkNotificationPayload) => {
+    const currentUser = auth.currentUser;
+    const idToken = currentUser ? await currentUser.getIdToken() : '';
+
+    const response = await fetch(`${FUNCTIONS_BASE_URL}/sendFoBulkNotification`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to send FO bulk notification');
+    }
+
     return await response.json();
   },
 };

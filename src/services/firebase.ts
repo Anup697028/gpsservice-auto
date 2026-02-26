@@ -3,13 +3,30 @@ import { getAuth, connectAuthEmulator } from 'firebase/auth';
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
 
+const requiredEnv = {
+  VITE_FIREBASE_API_KEY: import.meta.env.VITE_FIREBASE_API_KEY,
+  VITE_FIREBASE_AUTH_DOMAIN: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  VITE_FIREBASE_PROJECT_ID: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  VITE_FIREBASE_STORAGE_BUCKET: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  VITE_FIREBASE_MESSAGING_SENDER_ID: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  VITE_FIREBASE_APP_ID: import.meta.env.VITE_FIREBASE_APP_ID,
+};
+
+const missingFirebaseEnv = Object.entries(requiredEnv)
+  .filter(([, value]) => !value)
+  .map(([key]) => key);
+
+if (missingFirebaseEnv.length > 0) {
+  throw new Error(`Missing Firebase environment variables: ${missingFirebaseEnv.join(', ')}`);
+}
+
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyDemoKey1234567890',
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'gps-automation.firebaseapp.com',
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'gps-automation',
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'gps-automation.appspot.com',
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '123456789',
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || '1:123456789:web:abcdef123456',
+  apiKey: requiredEnv.VITE_FIREBASE_API_KEY as string,
+  authDomain: requiredEnv.VITE_FIREBASE_AUTH_DOMAIN as string,
+  projectId: requiredEnv.VITE_FIREBASE_PROJECT_ID as string,
+  storageBucket: requiredEnv.VITE_FIREBASE_STORAGE_BUCKET as string,
+  messagingSenderId: requiredEnv.VITE_FIREBASE_MESSAGING_SENDER_ID as string,
+  appId: requiredEnv.VITE_FIREBASE_APP_ID as string,
 };
 
 const app = initializeApp(firebaseConfig);

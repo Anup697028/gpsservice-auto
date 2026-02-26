@@ -6,7 +6,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.15);
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.12);
   transition: all 0.25s ease;
 }
 
@@ -16,37 +16,37 @@
 }
 
 .badge-blue {
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-strong) 100%);
   color: white;
-  box-shadow: 0 3px 12px rgba(59, 130, 246, 0.4);
+  box-shadow: 0 6px 16px rgba(31, 111, 120, 0.35);
 }
 
 .badge-amber {
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  background: linear-gradient(135deg, var(--warning) 0%, #a86421 100%);
   color: white;
-  box-shadow: 0 3px 12px rgba(245, 158, 11, 0.4);
+  box-shadow: 0 6px 16px rgba(194, 124, 44, 0.35);
 }
 
 .badge-purple {
-  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  background: linear-gradient(135deg, #6f7d8c 0%, #586575 100%);
   color: white;
-  box-shadow: 0 3px 12px rgba(139, 92, 246, 0.4);
+  box-shadow: 0 6px 16px rgba(88, 101, 117, 0.35);
 }
 
 .badge-green {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  background: linear-gradient(135deg, var(--success) 0%, #12724b 100%);
   color: white;
-  box-shadow: 0 3px 12px rgba(16, 185, 129, 0.4);
+  box-shadow: 0 6px 16px rgba(31, 143, 95, 0.35);
 }
 
 .badge-red {
-  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  background: linear-gradient(135deg, var(--danger) 0%, #b93b3b 100%);
   color: white;
-  box-shadow: 0 3px 12px rgba(239, 68, 68, 0.4);
+  box-shadow: 0 6px 16px rgba(208, 75, 75, 0.35);
 }
 
 .badge-gray {
-  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+  background: linear-gradient(135deg, #566070 0%, #3f4b5c 100%);
   color: white;
-  box-shadow: 0 3px 12px rgba(107, 114, 128, 0.4);
+  box-shadow: 0 6px 16px rgba(86, 96, 112, 0.35);
 }

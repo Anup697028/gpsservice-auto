@@ -166,7 +166,7 @@ export const FoDashboard = () => {
           )}
 
           <div className="form-group">
-            <label>Driver Details</label>
+            <label>LTPOC Details</label>
             {driverDetails.map((driver, index) => (
               <div key={index} className="driver-entry">
                 <select
@@ -182,13 +182,13 @@ export const FoDashboard = () => {
                 </select>
                 <input
                   type="text"
-                  placeholder="Driver Name"
+                  placeholder="LTPOC Name"
                   value={driver.driverName}
                   onChange={(e) => handleUpdateDriver(index, 'driverName', e.target.value)}
                 />
                 <input
                   type="tel"
-                  placeholder="Driver Phone"
+                  placeholder="LTPOC Phone"
                   value={driver.driverNumber}
                   onChange={(e) => handleUpdateDriver(index, 'driverNumber', e.target.value)}
                 />
@@ -206,7 +206,7 @@ export const FoDashboard = () => {
               className="btn btn-secondary"
               onClick={handleAddDriver}
             >
-              + Add Driver
+              + Add LTPOC
             </button>
           </div>
 

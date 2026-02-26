@@ -1,19 +1,19 @@
 .request-card {
-  background: linear-gradient(to bottom, #ffffff 0%, #fafbfc 100%);
-  border-radius: 14px;
-  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.1), 0 2px 4px rgba(15, 23, 42, 0.06);
+  background: linear-gradient(to bottom, #ffffff 0%, #f8faf9 100%);
+  border-radius: 18px;
+  box-shadow: var(--shadow-soft);
   overflow: visible;
   transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
   display: flex;
   flex-direction: column;
   height: 100%;
-  border: 1.5px solid var(--gray-200);
+  border: 1px solid var(--border);
   position: relative;
 }
 
 .request-card:hover {
-  box-shadow: 0 20px 40px rgba(59, 130, 246, 0.15), 0 8px 16px rgba(15, 23, 42, 0.1);
-  transform: translateY(-6px);
+  box-shadow: var(--shadow-strong);
+  transform: translateY(-4px);
   border-color: var(--primary);
 }
 
@@ -65,9 +65,9 @@
   border-radius: 20px;
   font-size: 0.85rem;
   font-weight: 700;
-  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
   color: white;
-  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+  box-shadow: 0 4px 12px rgba(15, 118, 110, 0.35);
   letter-spacing: 0.02em;
   text-transform: uppercase;
 }
@@ -78,7 +78,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
-  background: linear-gradient(to bottom, #ffffff 0%, #fafafa 100%);
+  background: linear-gradient(to bottom, #ffffff 0%, #f7f9fb 100%);
 }
 
 .request-card-footer .btn {
@@ -88,40 +88,40 @@
   min-width: 130px;
   font-weight: 600;
   border: none;
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
   transition: all 0.25s ease;
 }
 
 .request-card-footer .btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.18);
+  transform: translateY(-1px);
+  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.18);
 }
 
 .request-card-footer .btn-danger {
-  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  background: linear-gradient(135deg, var(--danger) 0%, #b93b3b 100%);
   color: white;
 }
 
 .request-card-footer .btn-danger:hover {
-  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-  box-shadow: 0 8px 20px rgba(239, 68, 68, 0.35);
+  background: linear-gradient(135deg, #b93b3b 0%, #9f2f2f 100%);
+  box-shadow: 0 10px 24px rgba(208, 75, 75, 0.35);
 }
 
 .request-card-footer .btn-secondary {
-  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+  background: linear-gradient(135deg, #566070 0%, #3f4b5c 100%);
   color: white;
 }
 
 .request-card-footer .btn-secondary:hover {
-  background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
+  background: linear-gradient(135deg, #3f4b5c 0%, #2f3946 100%);
 }
 
 .request-card-footer .btn-primary {
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-strong) 100%);
   color: white;
 }
 
 .request-card-footer .btn-primary:hover {
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-  box-shadow: 0 8px 20px rgba(59, 130, 246, 0.35);
+  background: linear-gradient(135deg, var(--primary-strong) 0%, #0f3d41 100%);
+  box-shadow: 0 10px 24px rgba(31, 111, 120, 0.35);
 }

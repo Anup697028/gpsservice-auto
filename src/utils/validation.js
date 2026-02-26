@@ -23,22 +23,29 @@ export const validateBulkVehicles = (selectedVehicles) => {
   return { valid: true };
 };
 
-export const validateDriverDetails = (driverDetails) => {
-  if (!driverDetails || driverDetails.length === 0) {
-    return { valid: false, message: 'Please add at least one driver' };
+// Fix #3: normalize to digits only and keep max length 10 for strict storage/validation.
+export const normalizePhoneNumber = (value) => String(value || '').replace(/\D/g, '').slice(0, 10);
+
+export const isStrictPhoneNumber = (value) => /^\d{10}$/.test(String(value || ''));
+
+export const validateDriverDetails = (ltpocDetails) => {
+  if (!ltpocDetails || ltpocDetails.length === 0) {
+    return { valid: false, message: 'Please add at least one LTPOC' };
   }
 
-  for (const driver of driverDetails) {
-    if (!driver.vehicleNumber || !driver.driverName || !driver.driverNumber) {
+  for (const ltpoc of ltpocDetails) {
+    const normalizedPhone = normalizePhoneNumber(ltpoc.ltpocPhone);
+
+    if (!ltpoc.vehicleNumber || !ltpoc.ltpocName || !normalizedPhone) {
       return {
         valid: false,
-        message: 'All driver fields are required',
+        message: 'All LTPOC fields (Vehicle, Name, Phone) are required',
       };
     }
-    if (driver.driverNumber.length < 10) {
+    if (!isStrictPhoneNumber(normalizedPhone)) {
       return {
         valid: false,
-        message: 'Invalid driver phone number',
+        message: 'LTPOC phone must be exactly 10 digits',
       };
     }
   }

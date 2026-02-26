@@ -80,14 +80,7 @@ export const AuthProvider = ({ children }) => {
 
       if (userDocSnap.exists()) {
         const userData = userDocSnap.data();
-        const lastLoginDate = userData.lastLoginDate || null;
         const todayKey = getTodayKey();
-
-        if (userData.role === 'RH' && lastLoginDate === todayKey) {
-          await signOut(auth);
-          throw new Error('Regional Head can login only once per calendar day.');
-        }
-
         await updateDoc(userDocRef, { lastLoginDate: todayKey });
       }
 

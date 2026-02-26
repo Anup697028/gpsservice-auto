@@ -140,12 +140,17 @@ const Dashboard = () => {
       return;
     }
 
-    // Use role if set, otherwise default to FO (requester)
-    const assignedRole = userRole || 'FO';
+    if (!userRole) {
+      console.warn('User role is not assigned yet, waiting for Firestore user role.');
+      return;
+    }
+
+    const assignedRole = userRole;
     const route = assignedRole === 'FO' ? '/fo-dashboard' 
                 : assignedRole === 'RH' ? '/rh-dashboard'
                 : assignedRole === 'PAYMENT' ? '/payment-dashboard'
                 : assignedRole === 'VENDOR' ? '/vendor-dashboard'
+                : assignedRole === 'ADMIN' ? '/admin'
                 : null;
     
     console.log('User assigned role:', assignedRole, '| Redirecting to:', route);
@@ -153,7 +158,7 @@ const Dashboard = () => {
       navigate(route);
     } else {
       console.error('Unknown role:', assignedRole);
-      navigate('/login');
+      navigate('/unauthorized');
     }
   }, [userRole, user, loading, navigate]);
 

@@ -1,8 +1,9 @@
 .audit-log {
   margin-top: 1rem;
   padding: 1rem;
-  background-color: var(--gray-50);
-  border-radius: 4px;
+  background-color: #f7f9fb;
+  border-radius: 12px;
+  border: 1px solid var(--border);
 }
 
 .audit-log h3 {
@@ -11,37 +12,82 @@
   font-size: 1rem;
 }
 
-.audit-log-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+.audit-log-table-wrapper {
+  overflow-x: auto;
+  margin-top: 0.75rem;
 }
 
-.audit-log-entry {
+.audit-log-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08);
+}
+
+.audit-log-table thead {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-strong) 100%);
+  color: white;
+}
+
+.audit-log-table th {
   padding: 0.75rem;
-  background-color: white;
-  border-left: 3px solid var(--primary);
-  border-radius: 4px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
-.audit-log-action {
+.audit-log-table tbody tr {
+  border-bottom: 1px solid var(--gray-200);
+  transition: background-color 0.2s ease;
+}
+
+.audit-log-table tbody tr:hover {
+  background-color: #f7f9fb;
+}
+
+.audit-log-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.audit-log-table td {
+  padding: 0.75rem;
+  font-size: 0.9rem;
+  color: var(--gray-700);
+}
+
+.action-cell {
   font-weight: 600;
   color: var(--gray-900);
-  margin-bottom: 0.25rem;
 }
 
-.audit-log-details {
-  display: flex;
-  justify-content: space-between;
+.status-cell {
+  font-weight: 500;
+  color: var(--primary);
+}
+
+.user-cell {
+  color: var(--gray-600);
+}
+
+.notes-cell {
+  color: var(--gray-700);
+  max-width: 360px;
+  word-break: break-word;
+}
+
+.notes-cell.reason-highlight {
+  color: #8b1d1d;
+  font-weight: 700;
+  background: rgba(244, 67, 54, 0.12);
+  border-left: 4px solid #d32f2f;
+}
+
+.time-cell {
   font-size: 0.85rem;
   color: var(--text-muted);
-  gap: 1rem;
-}
-
-.audit-log-user {
-  flex: 1;
-}
-
-.audit-log-time {
   white-space: nowrap;
 }
