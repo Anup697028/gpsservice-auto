@@ -1,0 +1,72 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function userRole() {
+      return userDoc().data.role;
+    }
+
+    function isRole(role) {
+      return isSignedIn() && (userRole() == role || (userRole() == null && role == 'FO'));
+    }
+
+    function isOwner(resourceData) {
+      return resourceData.createdBy == request.auth.uid;
+    }
+
+    function onlyChanges(allowedKeys) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(allowedKeys);
+    }
+
+    match /users/{userId} {
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow update: if isSignedIn() && request.auth.uid == userId;
+    }
+
+    match /requests/{requestId} {
+      allow create: if isRole('FO')
+        && request.resource.data.createdBy == request.auth.uid;
+
+      allow read: if isSignedIn() && (
+        isOwner(resource.data)
+        || isRole('RH')
+        || isRole('PAYMENT')
+        || isRole('VENDOR')
+        || isRole('ADMIN')
+      );
+
+      allow update: if isRole('RH')
+        && resource.data.status == 'PARALLEL_REVIEW'
+        && onlyChanges(['rhApproval', 'status', 'updatedAt', 'history', 'rejectionReason', 'clientName', 'city']);
+
+      allow update: if isRole('FO')
+        && isOwner(resource.data)
+        && resource.data.status in ['PARALLEL_REVIEW', 'VENDOR_COORDINATION', 'HALTED', 'REQUEST_CREATED']
+        && request.resource.data.status == 'CANCELLED'
+        && onlyChanges(['status', 'updatedAt', 'history']);
+
+      allow update: if isRole('PAYMENT')
+        && resource.data.status == 'PARALLEL_REVIEW'
+        && onlyChanges(['paymentApproval', 'status', 'updatedAt', 'history', 'rejectionReason', 'clientName', 'city']);
+
+      allow update: if isRole('VENDOR')
+        && resource.data.status == 'VENDOR_COORDINATION'
+        && onlyChanges(['vendorName', 'notificationTimestamp', 'updatedAt', 'history']);
+
+      allow update: if isRole('VENDOR')
+        && resource.data.status == 'VENDOR_COORDINATION'
+        && request.resource.data.status == 'COMPLETED'
+        && onlyChanges(['vendorName', 'status', 'notificationTimestamp', 'updatedAt', 'history']);
+
+      allow update: if isRole('ADMIN');
+    }
+  }
+}
