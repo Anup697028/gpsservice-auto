@@ -1,4 +1,3 @@
-import { serverTimestamp } from 'firebase/firestore';
 import {
   REQUEST_STATUSES,
   WORKFLOW_ACTIONS,
@@ -8,6 +7,8 @@ import {
   type WorkflowUpdateResult,
   type UserRef,
 } from '../types/workflow';
+
+const createTimestamp = () => new Date().toISOString();
 
 const ensureRole = (user: UserRef) => {
   if (!user?.id || !user?.role) {
@@ -27,20 +28,46 @@ const ensureRequiredField = (value: string | undefined, fieldName: string) => {
   }
 };
 
+const normalizeVehicleNumberKey = (value: unknown) =>
+  String(value ?? '')
+    .replace(/[^a-zA-Z0-9]/g, '')
+    .toUpperCase();
+
+const toVehicleArray = (value: unknown): Array<Record<string, unknown>> => {
+  if (Array.isArray(value)) {
+    return value as Array<Record<string, unknown>>;
+  }
+
+  if (value && typeof value === 'object') {
+    return Object.keys(value as Record<string, unknown>)
+      .sort((left, right) => Number(left) - Number(right))
+      .map((key) => ((value as Record<string, unknown>)[key] ?? {}) as Record<string, unknown>);
+  }
+
+  return [];
+};
+
+const isBulkRequestFlag = (value: unknown) => {
+  if (value === true || value === 1) {
+    return true;
+  }
+
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    return normalized === 'true' || normalized === '1' || normalized === 'yes';
+  }
+
+  return false;
+};
+
 /**
  * WORKFLOW LOGIC:
  * ===============
- * SINGLE REQUEST (isBulkRequest = false):
+ * UNIFIED WORKFLOW (single + bulk):
  *   FO creates → PARALLEL_REVIEW
  *   RH approves → stays PARALLEL_REVIEW
  *   Payment approves → VENDOR_COORDINATION
  *   Vendor notifies → COMPLETED
- *
- * BULK REQUEST (isBulkRequest = true):
- *   FO creates → FO_CREATED
- *   RH approves → PAYMENT_PENDING
- *   Payment approves → PAYMENT_APPROVED
- *   Vendor notifies → SERVICE_INITIATED
  */
 export const updateRequestState = (
   request: RequestRecord | null,
@@ -51,7 +78,7 @@ export const updateRequestState = (
   ensureRole(user);
 
   const statusFrom = request?.status ?? null;
-  const isBulk = request?.isBulkRequest ?? false;
+  const isBulk = isBulkRequestFlag(request?.isBulkRequest);
   let statusTo: string | null = statusFrom;
   const updates: Record<string, unknown> = {};
 
@@ -64,11 +91,8 @@ export const updateRequestState = (
         throw new Error('Request already exists and cannot be created again.');
       }
 
-      // Determine initial status based on bulk flag
-      const isBulkRequest = optionalData.isBulkRequest ?? false;
-      statusTo = isBulkRequest 
-        ? REQUEST_STATUSES.FO_CREATED 
-        : REQUEST_STATUSES.PARALLEL_REVIEW;
+      // Unified initial status for both single and bulk requests.
+      statusTo = REQUEST_STATUSES.PARALLEL_REVIEW;
 
       updates.status = statusTo;
       
@@ -103,7 +127,7 @@ export const updateRequestState = (
       updates.rhApproval = true;
       updates.rhActionTaken = true;
       updates.rhStatus = 'APPROVED';
-      updates.rhApprovedAt = serverTimestamp();
+      updates.rhApprovedAt = createTimestamp();
       statusTo = statusFrom ?? REQUEST_STATUSES.PARALLEL_REVIEW;
       updates.status = statusTo;
       break;
@@ -114,20 +138,28 @@ export const updateRequestState = (
       if (isBulk) {
         throw new Error('Use PAYMENT_BULK_APPROVE for bulk requests.');
       }
-      ensureStatus(statusFrom, [REQUEST_STATUSES.PARALLEL_REVIEW]);
+      ensureStatus(statusFrom, [
+        REQUEST_STATUSES.PARALLEL_REVIEW,
+        REQUEST_STATUSES.FO_CREATED,
+        REQUEST_STATUSES.PAYMENT_PENDING,
+      ]);
       updates.paymentApproval = true;
       updates.paymentApproved = true;
       updates.paymentRejected = false;
       updates.paymentActionTaken = true;
       updates.paymentStatus = 'APPROVED';
-      updates.paymentApprovedAt = serverTimestamp();
+      updates.paymentApprovedAt = createTimestamp();
       statusTo = REQUEST_STATUSES.VENDOR_COORDINATION;
       updates.status = statusTo;
       break;
     }
 
     case WORKFLOW_ACTIONS.RH_REJECT: {
-      ensureStatus(statusFrom, [REQUEST_STATUSES.PARALLEL_REVIEW]);
+      ensureStatus(statusFrom, [
+        REQUEST_STATUSES.PARALLEL_REVIEW,
+        REQUEST_STATUSES.FO_CREATED,
+        REQUEST_STATUSES.PAYMENT_PENDING,
+      ]);
       ensureRequiredField(optionalData.rejectionReason, 'Rejection reason');
       updates.rhStatus = 'REJECTED';
       updates.rhActionTaken = true;
@@ -137,13 +169,17 @@ export const updateRequestState = (
     }
 
     case WORKFLOW_ACTIONS.PAYMENT_REJECT: {
-      ensureStatus(statusFrom, [REQUEST_STATUSES.PARALLEL_REVIEW]);
+      ensureStatus(statusFrom, [
+        REQUEST_STATUSES.PARALLEL_REVIEW,
+        REQUEST_STATUSES.FO_CREATED,
+        REQUEST_STATUSES.PAYMENT_PENDING,
+      ]);
       ensureRequiredField(optionalData.rejectionReason, 'Rejection reason');
       updates.paymentApproved = false;
       updates.paymentRejected = true;
       updates.paymentActionTaken = true;
       updates.paymentStatus = 'REJECTED';
-      updates.paymentRejectedAt = serverTimestamp();
+      updates.paymentRejectedAt = createTimestamp();
       updates.status = REQUEST_STATUSES.HALTED;
       updates.rejectionReason = optionalData.rejectionReason;
       break;
@@ -162,7 +198,7 @@ export const updateRequestState = (
       updates.rhApproval = true;
       updates.rhActionTaken = true;
       updates.rhStatus = 'APPROVED';
-      updates.rhApprovedAt = serverTimestamp();
+      updates.rhApprovedAt = createTimestamp();
       statusTo = statusFrom ?? REQUEST_STATUSES.PARALLEL_REVIEW;
       updates.status = statusTo;
       break;
@@ -170,14 +206,18 @@ export const updateRequestState = (
 
     case WORKFLOW_ACTIONS.PAYMENT_EDIT_APPROVE: {
       // Single request: Payment edits and approves
-      ensureStatus(statusFrom, [REQUEST_STATUSES.PARALLEL_REVIEW]);
+      ensureStatus(statusFrom, [
+        REQUEST_STATUSES.PARALLEL_REVIEW,
+        REQUEST_STATUSES.FO_CREATED,
+        REQUEST_STATUSES.PAYMENT_PENDING,
+      ]);
       if (optionalData.updates) {
         Object.assign(updates, optionalData.updates);
       }
       updates.paymentApproval = true;
       updates.paymentStatus = 'APPROVED';
       updates.paymentActionTaken = true;
-      updates.paymentApprovedAt = serverTimestamp();
+      updates.paymentApprovedAt = createTimestamp();
       statusTo = REQUEST_STATUSES.VENDOR_COORDINATION;
       updates.status = statusTo;
       break;
@@ -186,25 +226,26 @@ export const updateRequestState = (
     // ===== BULK REQUEST WORKFLOW =====
 
     case WORKFLOW_ACTIONS.RH_BULK_APPROVE: {
-      // ===== PARALLEL BULK APPROVAL =====
-      // Bulk: RH compliance approval can happen before or after payment/vendor progress.
+      // Bulk follows the same rule as single: RH approval is parallel, no vendor move.
       if (!isBulk) {
         throw new Error('use RH_APPROVE for single requests.');
       }
       ensureStatus(statusFrom, [
+        REQUEST_STATUSES.PARALLEL_REVIEW,
         REQUEST_STATUSES.FO_CREATED,
         REQUEST_STATUSES.PAYMENT_PENDING,
         REQUEST_STATUSES.PAYMENT_APPROVED,
+        REQUEST_STATUSES.VENDOR_COORDINATION,
         REQUEST_STATUSES.SERVICE_INITIATED,
         REQUEST_STATUSES.COMPLETED,
       ]);
       
       // Set RH approval
       updates.rhStatus = 'APPROVED';
-      updates.rhApprovedAt = serverTimestamp();
+      updates.rhApprovedAt = createTimestamp();
 
       // RH compliance action must not move business stage backward.
-      statusTo = statusFrom ?? REQUEST_STATUSES.FO_CREATED;
+      statusTo = statusFrom ?? REQUEST_STATUSES.PARALLEL_REVIEW;
       updates.bothApproved = request?.paymentStatus === 'APPROVED';
       
       updates.status = statusTo;
@@ -212,11 +253,15 @@ export const updateRequestState = (
     }
 
     case WORKFLOW_ACTIONS.RH_BULK_REJECT: {
-      // Bulk: RH rejects at FO_CREATED
+      // Bulk follows the same rejection gate as single.
       if (!isBulk) {
         throw new Error('Use RH_REJECT for single requests.');
       }
-      ensureStatus(statusFrom, [REQUEST_STATUSES.FO_CREATED]);
+      ensureStatus(statusFrom, [
+        REQUEST_STATUSES.PARALLEL_REVIEW,
+        REQUEST_STATUSES.FO_CREATED,
+        REQUEST_STATUSES.PAYMENT_PENDING,
+      ]);
       ensureRequiredField(optionalData.rejectionReason, 'Rejection reason');
       updates.rhStatus = 'REJECTED';
       updates.rejectionReason = optionalData.rejectionReason;
@@ -226,19 +271,22 @@ export const updateRequestState = (
     }
 
     case WORKFLOW_ACTIONS.PAYMENT_BULK_APPROVE: {
-      // ===== PARALLEL BULK APPROVAL =====
-      // Bulk: Payment approves at FO_CREATED (independently from RH)
+      // Bulk follows the same vendor gate as single: payment approval opens vendor stage.
       if (!isBulk) {
         throw new Error('Use PAYMENT_APPROVE for single requests.');
       }
-      ensureStatus(statusFrom, [REQUEST_STATUSES.FO_CREATED, REQUEST_STATUSES.PAYMENT_PENDING]);
+      ensureStatus(statusFrom, [
+        REQUEST_STATUSES.PARALLEL_REVIEW,
+        REQUEST_STATUSES.FO_CREATED,
+        REQUEST_STATUSES.PAYMENT_PENDING,
+      ]);
       
       // Set Payment approval
       updates.paymentStatus = 'APPROVED';
-      updates.paymentApprovedAt = serverTimestamp();
+      updates.paymentApprovedAt = createTimestamp();
 
-      // Payment approval moves bulk request to vendor stage irrespective of RH approval.
-      statusTo = REQUEST_STATUSES.PAYMENT_APPROVED;
+      // Payment approval moves request to vendor stage irrespective of RH approval.
+      statusTo = REQUEST_STATUSES.VENDOR_COORDINATION;
       updates.bothApproved = request?.rhStatus === 'APPROVED';
       
       updates.status = statusTo;
@@ -246,11 +294,15 @@ export const updateRequestState = (
     }
 
     case WORKFLOW_ACTIONS.PAYMENT_BULK_REJECT: {
-      // Bulk: Payment rejects at FO_CREATED
+      // Bulk follows the same rejection gate as single.
       if (!isBulk) {
         throw new Error('Use PAYMENT_REJECT for single requests.');
       }
-      ensureStatus(statusFrom, [REQUEST_STATUSES.FO_CREATED, REQUEST_STATUSES.PAYMENT_PENDING]);
+      ensureStatus(statusFrom, [
+        REQUEST_STATUSES.PARALLEL_REVIEW,
+        REQUEST_STATUSES.FO_CREATED,
+        REQUEST_STATUSES.PAYMENT_PENDING,
+      ]);
       ensureRequiredField(optionalData.rejectionReason, 'Rejection reason');
       updates.paymentStatus = 'REJECTED';
       updates.rejectionReason = optionalData.rejectionReason;
@@ -260,17 +312,20 @@ export const updateRequestState = (
     }
 
     case WORKFLOW_ACTIONS.VENDOR_BULK_NOTIFY: {
-      // Bulk: Vendor notifies at PAYMENT_APPROVED
+      // Bulk follows the same vendor stage as single.
       if (!isBulk) {
         throw new Error('Use VENDOR_NOTIFY for single requests.');
       }
-      ensureStatus(statusFrom, [REQUEST_STATUSES.PAYMENT_APPROVED]);
+      ensureStatus(statusFrom, [
+        REQUEST_STATUSES.VENDOR_COORDINATION,
+        REQUEST_STATUSES.PAYMENT_APPROVED,
+      ]);
       ensureRequiredField(optionalData.vendorName, 'Vendor name');
       updates.vendorStatus = 'NOTIFIED';
       updates.vendorName = optionalData.vendorName;
-      updates.vendorApprovedAt = serverTimestamp();
+      updates.vendorApprovedAt = createTimestamp();
       updates.vendorApprovedBy = user.id;
-      statusTo = REQUEST_STATUSES.SERVICE_INITIATED;
+      statusTo = REQUEST_STATUSES.COMPLETED;
       updates.status = statusTo;
       break;
     }
@@ -287,8 +342,8 @@ export const updateRequestState = (
       statusTo = REQUEST_STATUSES.COMPLETED;
       updates.status = statusTo;
       updates.vendorName = optionalData.vendorName;
-      updates.notificationTimestamp = serverTimestamp();
-      updates.vendorApprovedAt = serverTimestamp();
+      updates.notificationTimestamp = createTimestamp();
+      updates.vendorApprovedAt = createTimestamp();
       updates.vendorApprovedBy = user.id;
       break;
     }
@@ -297,16 +352,21 @@ export const updateRequestState = (
       if (!isBulk) {
         throw new Error('Vehicle removal is allowed only for bulk requests.');
       }
-      ensureStatus(statusFrom, [REQUEST_STATUSES.FO_CREATED]);
+      ensureStatus(statusFrom, [
+        REQUEST_STATUSES.PARALLEL_REVIEW,
+        REQUEST_STATUSES.FO_CREATED,
+        REQUEST_STATUSES.PAYMENT_PENDING,
+      ]);
 
       const vehicleNumber = optionalData.updates?.vehicleNumber as string | undefined;
-      if (!vehicleNumber) {
+      const vehicleKey = normalizeVehicleNumberKey(vehicleNumber);
+      if (!vehicleKey) {
         throw new Error('Vehicle number is required to remove a vehicle.');
       }
 
-      const existingVehicles = (request?.vehicles ?? []) as Array<Record<string, unknown>>;
+      const existingVehicles = toVehicleArray(request?.vehicles);
       const remainingVehicles = existingVehicles.filter(
-        (vehicle) => vehicle.vehicleNumber !== vehicleNumber
+        (vehicle) => normalizeVehicleNumberKey(vehicle?.vehicleNumber) !== vehicleKey
       );
 
       if (remainingVehicles.length === existingVehicles.length) {
@@ -318,8 +378,14 @@ export const updateRequestState = (
       }
 
       updates.vehicles = remainingVehicles;
+      if (Array.isArray(request?.ltpocDetails)) {
+        const remainingLtpocDetails = (request?.ltpocDetails as Array<Record<string, unknown>>).filter(
+          (entry) => normalizeVehicleNumberKey(entry?.vehicleNumber) !== vehicleKey
+        );
+        updates.ltpocDetails = remainingLtpocDetails;
+      }
       updates.vehicleCount = remainingVehicles.length;
-      statusTo = REQUEST_STATUSES.FO_CREATED;
+      statusTo = statusFrom;
       updates.status = statusTo;
       break;
     }
@@ -327,10 +393,12 @@ export const updateRequestState = (
     case WORKFLOW_ACTIONS.CANCEL: {
       // Both workflows can cancel
       ensureStatus(statusFrom, [
+        REQUEST_STATUSES.PARALLEL_REVIEW,
         REQUEST_STATUSES.FO_CREATED,
         REQUEST_STATUSES.PAYMENT_PENDING,
-        REQUEST_STATUSES.PARALLEL_REVIEW,
         REQUEST_STATUSES.VENDOR_COORDINATION,
+        REQUEST_STATUSES.PAYMENT_APPROVED,
+        REQUEST_STATUSES.SERVICE_INITIATED,
         REQUEST_STATUSES.HALTED,
         'REQUEST_CREATED'
       ]);

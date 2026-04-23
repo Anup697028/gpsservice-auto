@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Payment History</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f26a21",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#221610",
+                    },
+                    fontFamily: {
+                        "display": ["Public Sans"]
+                    },
+                    borderRadius: {"DEFAULT": "0rem", "lg": "0rem", "xl": "0rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: "Public Sans", sans-serif;
+        }
+        .compact-table td, .compact-table th {
+            padding: 0.75rem 1rem;
+        }
+        .data-entry {
+            color: #000000;
+            font-weight: 400;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display">
+<div class="flex h-screen overflow-hidden">
+<!-- Sidebar -->
+<aside class="w-64 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col">
+<div class="p-6">
+<h1 class="text-primary text-xl font-bold uppercase tracking-wider">Payment Portal</h1>
+<p class="text-slate-500 dark:text-slate-400 text-xs mt-1">INTERNAL ADMINISTRATION</p>
+</div>
+<nav class="flex-1 px-4 space-y-1">
+<a class="flex items-center gap-3 px-3 py-2.5 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" href="#">
+<span class="text-sm font-semibold">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 bg-primary/10 text-primary border-l-4 border-primary" href="#">
+<span class="text-sm font-bold">History</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" href="#">
+<span class="text-sm font-semibold">Profile</span>
+</a>
+</nav>
+<div class="p-4 border-t border-slate-200 dark:border-slate-800">
+<div class="flex items-center gap-3 px-3">
+<div class="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center overflow-hidden">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="Small round user profile avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDPxVa0hHY_0Hxibs4e1nlZH0rsduBjrVu7HE04nyZaYCFoPhXw3pz3do7W1j-hjfwqczVO4Hr6z0JX-XDzRsDX1CWb7SC-wz0JfzrjYr5ZgVf428s-rycvUcWGdFM1QN-8R1TIlOB-F-AgAxgWWM-dVGaIdGY05JSuV-SDOoi59BWl1xBIRbibO5Mnr55F6DhxoHvyFFYeNYM-wf4Ogv1QmmqYWO5MZkfkltGVP0K5pHTZXSdBOutspF7bFBHSlLrtrkhiMNGlOKw"/>
+</div>
+<div class="flex-1 min-w-0">
+<p class="text-xs font-bold truncate">Admin Account</p>
+<p class="text-[10px] text-slate-500 uppercase">Superuser</p>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 flex flex-col overflow-hidden">
+<!-- Header Section -->
+<header class="p-8 pb-4">
+<h2 class="text-primary text-3xl font-black uppercase tracking-tight">Payment History</h2>
+<p class="text-slate-600 dark:text-slate-400 text-sm mt-1">Review and audit all finalized transactions across the network.</p>
+</header>
+<!-- Filters -->
+<section class="px-8 py-3 flex flex-wrap items-center gap-4 border-b border-slate-200 dark:border-slate-800 bg-white">
+<div class="flex-1 min-w-[200px]">
+<input class="w-full max-w-xs border border-slate-300 px-3 py-1.5 text-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none" placeholder="Search Request ID..." type="text"/>
+</div>
+<div class="flex items-center gap-3">
+<select class="border border-slate-300 px-3 py-1.5 text-xs text-slate-600 focus:ring-1 focus:ring-primary outline-none bg-white">
+<option>Select City</option>
+<option>New York</option>
+<option>London</option>
+<option>Tokyo</option>
+</select>
+<div class="flex items-center gap-2">
+<span class="text-[10px] font-bold text-slate-400 uppercase">From</span>
+<input class="border border-slate-300 px-2 py-1 text-xs outline-none" type="date"/>
+<span class="text-[10px] font-bold text-slate-400 uppercase">To</span>
+<input class="border border-slate-300 px-2 py-1 text-xs outline-none" type="date"/>
+</div>
+</div>
+<div class="ml-auto flex items-center gap-2">
+<select class="border border-slate-300 px-3 py-1.5 text-xs text-black font-medium focus:ring-1 focus:ring-primary outline-none bg-white">
+<option value="all">Status: All</option>
+<option value="approved">Approved</option>
+<option value="rejected">Rejected</option>
+</select>
+<div class="w-px h-6 bg-slate-200 mx-2"></div>
+<button class="px-4 py-1.5 border border-primary text-primary text-xs font-bold hover:bg-primary hover:text-white transition-colors uppercase">
+            Download CSV
+        </button>
+</div>
+</section>
+<!-- Table Container -->
+<section class="flex-1 overflow-auto p-8">
+<div class="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
+<table class="w-full text-left border-collapse compact-table">
+<thead>
+<tr class="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
+<th class="text-[10px] font-bold uppercase text-slate-500 tracking-wider">Request ID</th>
+<th class="text-[10px] font-bold uppercase text-slate-500 tracking-wider">Status</th>
+<th class="text-[10px] font-bold uppercase text-slate-500 tracking-wider">Client</th>
+<th class="text-[10px] font-bold uppercase text-slate-500 tracking-wider">Vehicle Number</th>
+<th class="text-[10px] font-bold uppercase text-slate-500 tracking-wider">Service Type</th>
+<th class="text-[10px] font-bold uppercase text-slate-500 tracking-wider">Service Charge</th>
+<th class="text-[10px] font-bold uppercase text-slate-500 tracking-wider">Date</th>
+<th class="text-[10px] font-bold uppercase text-slate-500 tracking-wider text-right">Action</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+<tr class="border-b border-slate-100 hover:bg-slate-50/50">
+<td class="text-xs data-entry">REQ-882190</td>
+<td><span class="text-[10px] font-bold text-green-600">APPROVED</span></td>
+<td class="text-xs data-entry">Global Logistics Corp</td>
+<td class="text-xs data-entry">NY-882-BX</td>
+<td class="text-xs data-entry">Maintenance</td>
+<td class="text-xs data-entry">$450.00</td>
+<td class="text-xs data-entry">2023-11-20</td>
+<td class="text-right"><button class="px-4 py-1 border border-primary text-primary text-[10px] font-bold hover:bg-primary hover:text-white">VIEW</button></td>
+</tr>
+<tr class="border-b border-slate-100 hover:bg-slate-50/50">
+<td class="text-xs data-entry">REQ-882185</td>
+<td><span class="text-[10px] font-bold text-red-600">REJECTED</span></td>
+<td class="text-xs data-entry">Metro Transit Solutions</td>
+<td class="text-xs data-entry">LD-441-ZZ</td>
+<td class="text-xs data-entry">Emergency Repair</td>
+<td class="text-xs data-entry">$1,200.00</td>
+<td class="text-xs data-entry">2023-11-19</td>
+<td class="text-right"><button class="px-4 py-1 border border-primary text-primary text-[10px] font-bold hover:bg-primary hover:text-white">VIEW</button></td>
+</tr>
+<tr class="border-b border-slate-100 hover:bg-slate-50/50">
+<td class="text-xs data-entry">REQ-882172</td>
+<td><span class="text-[10px] font-bold text-green-600">APPROVED</span></td>
+<td class="text-xs data-entry">Apex Courier Service</td>
+<td class="text-xs data-entry">TK-902-MK</td>
+<td class="text-xs data-entry">Oil Change</td>
+<td class="text-xs data-entry">$85.50</td>
+<td class="text-xs data-entry">2023-11-18</td>
+<td class="text-right"><button class="px-4 py-1 border border-primary text-primary text-[10px] font-bold hover:bg-primary hover:text-white">VIEW</button></td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Pagination -->
+<div class="mt-6 flex items-center justify-between">
+<p class="text-xs text-slate-500 font-bold uppercase">Showing 1 to 6 of 124 transactions</p>
+<div class="flex border border-slate-300 dark:border-slate-700">
+<button class="p-2 border-r border-slate-300 hover:bg-slate-50 text-xs font-bold">PREV</button>
+<button class="px-4 py-2 text-xs font-bold bg-primary text-white">1</button>
+<button class="px-4 py-2 text-xs font-bold hover:bg-slate-50 border-x border-slate-300">2</button>
+<button class="px-4 py-2 text-xs font-bold hover:bg-slate-50 border-r border-slate-300">3</button>
+<button class="p-2 hover:bg-slate-50 text-xs font-bold">NEXT</button>
+</div>
+</div>
+</section>
+</main>
+</div>
+</body></html>

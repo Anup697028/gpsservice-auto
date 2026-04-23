@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>GPS Installation Automation - Field Operator Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Sora:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f26a21",
+                        "background-light": "#f8f6f5",
+                        "background-dark": "#221610",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "Sora", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                    boxShadow: {
+                        "soft": "0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        h1, h2, h3, .font-sora { font-family: 'Sora', sans-serif; }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100">
+<div class="flex h-screen overflow-hidden">
+<!-- SideNavBar -->
+<aside class="w-64 flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col justify-between py-6 px-4 shadow-xl">
+<div class="space-y-8">
+<div class="flex items-center gap-3 px-2">
+<div>
+<h1 class="text-sm font-bold leading-tight text-black" style="">GPS Automation</h1>
+<p class="text-xs text-primary font-semibold uppercase tracking-wider" style="">Field Operator</p>
+</div>
+</div>
+<nav class="space-y-1">
+<a class="flex items-center px-3 py-2.5 rounded-lg bg-primary text-white font-medium" href="#" style="">
+<span class="text-sm" style="">Dashboard</span>
+</a>
+<a class="flex items-center px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors font-medium" href="#" style="">
+<span class="text-sm" style="">History</span>
+</a>
+<a class="flex items-center px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors font-medium" href="#" style="">
+<span class="text-sm" style="">Profile</span>
+</a>
+</nav>
+</div>
+<div class="border-t border-slate-100 dark:border-slate-800 pt-4">
+<button class="flex items-center px-3 py-2.5 w-full rounded-lg text-slate-600 dark:text-slate-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 transition-colors font-medium" style="">
+<span class="text-sm" style="">Logout</span>
+</button>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col overflow-hidden">
+<!-- Top Command Bar -->
+<header class="h-16 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between px-8 z-10 shadow-sm">
+<h2 class="text-lg font-bold tracking-tight text-primary" style="">Field Operations Console</h2>
+<div class="flex items-center gap-6">
+<div class="h-8 w-px bg-slate-200 dark:border-slate-800"></div>
+<div class="flex items-center gap-3">
+<div class="text-right hidden sm:block">
+<p class="text-xs font-bold" style="">Alex Rivera</p>
+<p class="text-[10px] text-slate-500 uppercase" style="">Senior Installer</p>
+</div>
+<div class="h-10 w-10 rounded-full bg-slate-200 overflow-hidden border border-slate-300">
+<img class="h-full w-full object-cover" data-alt="Portrait of a field operator professional" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAijt5bWLPlkpGJrWM7z--1DB9FJr-FbTUDUAyFVjlFgxP-db3cJpq9yq2-o1q__-SZ86E7zdFIOzj-hX-1-erYJfggCowQJdmEZ6HArA3v29eSQaG3IYruLeb4hdRKatpJPPo-1h_-FBcGoBhTMWcbBtWTm9xsK4Ct-stGH2dq5BFtfaiSNHQzpe9NHpO_Yv7AiLVgdBCR2R5pvr4krIDfAYOh-ynihrSIax_loNLIswBresG7V2VAe_YYB6ulwD4EBBPUJ8GMhms" style=""/>
+</div>
+</div>
+<button class="flex items-center px-4 py-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-200 transition-colors" style="">
+
+                    LOGOUT
+                </button>
+</div>
+</header>
+<!-- Scrollable Body -->
+<div class="flex-1 overflow-y-auto p-8 bg-background-light dark:bg-background-dark">
+<!-- KPI Strip -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+<div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-xl flex items-center justify-between shadow-sm border-slate-100">
+<div>
+<p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1" style="">Total Requests</p>
+<p class="text-2xl font-bold font-sora text-black" style="">1,248</p>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-xl flex items-center justify-between shadow-sm border-slate-100">
+<div>
+<p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1" style="">Pending Sync</p>
+<p class="text-2xl font-bold font-sora text-primary text-black" style="">42</p>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-xl flex items-center justify-between shadow-sm border-slate-100">
+<div>
+<p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1" style="">Completed Today</p>
+<p class="text-2xl font-bold font-sora text-green-600 text-black" style="">18</p>
+</div>
+</div>
+</div>
+<!-- Main Form Card -->
+<div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
+<div class="px-8 py-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+<h3 class="text-xl font-bold text-primary" style="color: #f26a21;">Create Installation Request</h3>
+<span class="text-xs font-medium px-3 py-1 bg-primary/10 text-primary rounded-full" style="">New Task ID: #GPS-2024-001</span>
+</div>
+<div class="p-8 space-y-10">
+<!-- Basic Info -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+<div class="space-y-2">
+<label class="text-xs font-bold uppercase tracking-tighter text-black" style="">City Location</label>
+<div class="relative">
+<input class="w-full pr-4 py-2.5 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg text-sm focus:ring-primary focus:border-primary transition-shadow hover:border-slate-300 px-4" placeholder="Search City..." type="text"/>
+</div>
+</div>
+<div class="space-y-2">
+<label class="text-xs font-bold uppercase tracking-tighter text-black" style="">Client Name</label>
+<input class="w-full px-4 py-2.5 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg text-sm focus:ring-primary focus:border-primary transition-shadow hover:border-slate-300" placeholder="Enter corporate client name" type="text"/>
+</div>
+<div class="space-y-2">
+<label class="text-xs font-bold uppercase tracking-tighter text-black" style="">Assign Regional Head (RH)</label>
+<select class="w-full px-4 py-2.5 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg text-sm focus:ring-primary focus:border-primary transition-shadow hover:border-slate-300">
+<option>Rahul Sharma (rahul.s@gpsauto.com)</option>
+<option>Anita Desai (anita.d@gpsauto.com)</option>
+<option>Vikram Singh (vikram.s@gpsauto.com)</option>
+</select>
+</div>
+</div>
+<!-- Vehicle Add Section -->
+<div class="space-y-4">
+<label class="text-lg font-bold uppercase tracking-tighter text-primary block mb-2" style="">Vehicle NUmber</label>
+<div class="flex gap-3">
+<input class="w-full px-4 py-2.5 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg text-sm focus:ring-primary focus:border-primary transition-shadow hover:border-slate-300" placeholder="e.g. MH-12-AB-1234" type="text"/>
+<button class="px-6 py-2.5 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-lg font-bold text-sm hover:bg-black transition-colors flex items-center" style="">
+ ADD
+                            </button>
+</div>
+<div class="flex flex-wrap gap-2 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-dashed border-slate-200 dark:border-slate-700 min-h-[48px]">
+<div class="flex items-center gap-2 bg-white dark:bg-slate-700 px-3 py-1.5 rounded border border-slate-200 dark:border-slate-600 text-xs font-mono font-bold shadow-sm" style="">
+                                MH-12-PQ-9988
+                                
+</div>
+<div class="flex items-center gap-2 bg-white dark:bg-slate-700 px-3 py-1.5 rounded border border-slate-200 dark:border-slate-600 text-xs font-mono font-bold shadow-sm" style="">
+                                DL-01-CR-4432
+                                
+</div>
+</div>
+</div>
+<!-- Service Type & Availability -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+<div class="space-y-4">
+<label class="text-lg font-bold uppercase tracking-tighter text-primary block mb-4" style="">service type</label>
+<div class="grid grid-cols-2 gap-4">
+<label class="cursor-pointer group" style="">
+<input checked="" class="w-full px-4 py-2.5 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg text-sm focus:ring-primary focus:border-primary transition-shadow hover:border-slate-300" name="service" type="radio"/>
+<div class="border-2 border-slate-100 dark:border-slate-700 rounded-xl p-5 peer-checked:border-primary peer-checked:bg-primary/5 transition-all h-full shadow-sm hover:border-primary/50">
+<div class="flex items-center gap-2 mb-2">
+<p class="font-bold text-sm text-black dark:text-white" style="">FleetX </p>
+</div>
+<div class="space-y-1 text-[11px] text-slate-600 dark:text-slate-300 font-medium">
+<div class="flex justify-between"><span class="" style="">Cost:</span> <span class="text-black font-bold" style="">₹3000</span></div>
+<div class="flex justify-between"><span class="" style="">Refundable:</span> <span class="text-green-600 font-bold uppercase" style="">Yes</span></div>
+</div>
+</div>
+</label>
+<label class="cursor-pointer group" style="">
+<input class="w-full px-4 py-2.5 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg text-sm focus:ring-primary focus:border-primary transition-shadow hover:border-slate-300" name="service" type="radio"/>
+<div class="border-2 border-slate-100 dark:border-slate-700 rounded-xl p-5 peer-checked:border-primary peer-checked:bg-primary/5 transition-all h-full shadow-sm hover:border-primary/50">
+<div class="flex items-center gap-2 mb-2">
+<p class="font-bold text-sm text-black dark:text-white" style="">WheelsEye</p>
+</div>
+<div class="space-y-1 text-[11px] text-slate-600 dark:text-slate-300 font-medium">
+<div class="flex justify-between"><span class="" style="">Cost:</span> <span class="text-black font-bold" style="">₹2000</span></div>
+<div class="flex justify-between"><span class="" style="">Refundable:</span> <span class="text-red-500 font-bold uppercase" style="">No</span></div>
+</div>
+</div>
+</label>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="space-y-2">
+<label class="text-xs font-bold uppercase tracking-tighter text-black" style="">Availability Location</label>
+<div class="relative">
+<input class="w-full pr-4 py-2.5 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg text-sm focus:ring-primary focus:border-primary transition-shadow hover:border-slate-300 px-4" placeholder="Enter Depot/Site" type="text"/>
+</div>
+</div>
+<div class="space-y-2">
+<label class="text-xs font-bold uppercase tracking-tighter text-black" style="">Available Time</label>
+<input class="w-full px-4 py-2.5 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg text-sm focus:ring-primary focus:border-primary transition-shadow hover:border-slate-300" type="datetime-local"/>
+</div>
+</div>
+</div>
+<!-- LTPOC Section -->
+<div class="space-y-4">
+<div class="flex items-center justify-between">
+<label class="text-lg font-bold uppercase tracking-tighter text-primary" style="">LPTOC Details</label>
+<button class="text-xs font-bold text-primary flex items-center" style=""> ADD ROW</button>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200"><th class="px-4 py-3 text-xs font-bold uppercase" style="color: #12212A;">VEHICLE NUMBER</th><th class="px-4 py-3 text-xs font-bold uppercase" style="color: #12212A;">LPTOC NAME</th><th class="px-4 py-3 text-xs font-bold uppercase" style="color: #12212A;">PHONE NUMBER</th><th class="px-4 py-3 text-xs font-bold uppercase w-10" style=""></th></tr>
+</thead>
+<tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+<tr><td class="px-4 py-3"><select class="w-full px-4 py-2.5 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg text-sm focus:ring-primary focus:border-primary transition-shadow hover:border-slate-300"><option>MH-12-PQ-9988</option><option>DL-01-CR-4432</option></select></td>
+<td class="px-4 py-3" style=""><input class="w-full px-4 py-2.5 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg text-sm focus:ring-primary focus:border-primary transition-shadow hover:border-slate-300" type="text" value="Suresh Patil"/></td>
+<td class="px-4 py-3" style=""><input class="w-full px-4 py-2.5 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg text-sm focus:ring-primary focus:border-primary transition-shadow hover:border-slate-300" type="text" value="+91 98765 43210"/></td>
+<td class="px-4 py-3 text-right" style=""></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- LPO Section -->
+</div>
+<!-- Form Footer -->
+<div class="bg-slate-50 dark:bg-slate-800/30 px-8 py-6 flex items-center justify-end gap-4">
+<button class="px-6 py-2.5 text-slate-600 dark:text-slate-400 font-bold text-sm hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors" style="">CANCEL</button>
+<button class="px-10 py-3 bg-primary text-white font-bold text-sm rounded-lg hover:brightness-110 shadow-lg shadow-primary/25 transition-all flex items-center active:scale-95" style="background-color: #f26a21; color: white;">
+ GENERATE INSTALLATION REQUEST
+                    </button>
+</div>
+</div>
+<footer class="mt-12 text-center pb-8">
+<p class="text-[10px] text-slate-400 font-medium uppercase tracking-[0.2em]" style="">GPS Installation Automation System v4.2.0 • Secure Field Operations Portal</p>
+</footer>
+</div>
+</main>
+</div>
+</body></html>

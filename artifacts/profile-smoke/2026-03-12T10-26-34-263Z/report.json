@@ -1,0 +1,44 @@
+{
+  "baseUrl": "http://localhost:4173",
+  "headless": true,
+  "timeoutMs": 20000,
+  "strictCredentials": false,
+  "skippedRoles": [],
+  "passedCount": 3,
+  "failedCount": 0,
+  "results": [
+    {
+      "role": "RH",
+      "profileRouteLoaded": true,
+      "hasPersonalInfoSection": true,
+      "hasSecuritySettingsSection": true,
+      "hasRegionalAssignmentSection": false,
+      "hasPhoneInput": true,
+      "hasPasswordChangeButton": true,
+      "profileCompletionModalVisible": false,
+      "errors": []
+    },
+    {
+      "role": "PAYMENT",
+      "profileRouteLoaded": true,
+      "hasPersonalInfoSection": true,
+      "hasSecuritySettingsSection": true,
+      "hasRegionalAssignmentSection": false,
+      "hasPhoneInput": true,
+      "hasPasswordChangeButton": true,
+      "profileCompletionModalVisible": false,
+      "errors": []
+    },
+    {
+      "role": "VENDOR",
+      "profileRouteLoaded": true,
+      "hasPersonalInfoSection": true,
+      "hasSecuritySettingsSection": true,
+      "hasRegionalAssignmentSection": false,
+      "hasPhoneInput": true,
+      "hasPasswordChangeButton": true,
+      "profileCompletionModalVisible": false,
+      "errors": []
+    }
+  ]
+}

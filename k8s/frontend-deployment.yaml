@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gps-frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gps-frontend
+  template:
+    metadata:
+      labels:
+        app: gps-frontend
+    spec:
+      containers:
+      - name: frontend
+        image: placeholder-frontend:latest
+        ports:
+        - containerPort: 80

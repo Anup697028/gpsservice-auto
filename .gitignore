@@ -12,6 +12,25 @@ dist
 dist-ssr
 *.local
 
+# Environment and secrets
+.env
+.env.*
+!.env.example
+!.env.local.example
+!.env.docker.local.example
+!*.env.example
+
+# Firebase local cache/state
+.firebase/
+
+# Service account / credential files
+*serviceAccount*.json
+*firebase-adminsdk*.json
+*credentials*.json
+*.pem
+*.p12
+*.key
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

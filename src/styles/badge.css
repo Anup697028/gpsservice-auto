@@ -1,52 +1,51 @@
 .badge {
   display: inline-block;
-  padding: 0.35rem 0.9rem;
-  border-radius: 20px;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
   font-size: 0.8rem;
-  font-weight: 700;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.12);
-  transition: all 0.25s ease;
+  transition: background-color 0.2s, color 0.2s;
+  border: 1px solid transparent;
 }
 
 .badge:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 5px 15px rgba(15, 23, 42, 0.2);
+  filter: brightness(0.98);
 }
 
 .badge-blue {
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-strong) 100%);
-  color: white;
-  box-shadow: 0 6px 16px rgba(31, 111, 120, 0.35);
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+  border-color: var(--primary-soft-border);
 }
 
 .badge-amber {
-  background: linear-gradient(135deg, var(--warning) 0%, #a86421 100%);
-  color: white;
-  box-shadow: 0 6px 16px rgba(194, 124, 44, 0.35);
+  background: #fffbeb;
+  color: #b45309;
+  border-color: #fde68a;
 }
 
 .badge-purple {
-  background: linear-gradient(135deg, #6f7d8c 0%, #586575 100%);
-  color: white;
-  box-shadow: 0 6px 16px rgba(88, 101, 117, 0.35);
+  background: #f5f3ff;
+  color: #7c3aed;
+  border-color: #ddd6fe;
 }
 
 .badge-green {
-  background: linear-gradient(135deg, var(--success) 0%, #12724b 100%);
-  color: white;
-  box-shadow: 0 6px 16px rgba(31, 143, 95, 0.35);
+  background: #ecfdf5;
+  color: var(--success-strong);
+  border-color: #a7f3d0;
 }
 
 .badge-red {
-  background: linear-gradient(135deg, var(--danger) 0%, #b93b3b 100%);
-  color: white;
-  box-shadow: 0 6px 16px rgba(208, 75, 75, 0.35);
+  background: #fef2f2;
+  color: var(--danger-strong);
+  border-color: #fecaca;
 }
 
 .badge-gray {
-  background: linear-gradient(135deg, #566070 0%, #3f4b5c 100%);
-  color: white;
-  box-shadow: 0 6px 16px rgba(86, 96, 112, 0.35);
+  background: var(--gray-100);
+  color: var(--gray-600);
+  border-color: var(--control-border);
 }

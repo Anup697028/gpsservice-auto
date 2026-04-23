@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Vendor Coordinator Console</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f26a21",
+                        "background-light": "#f8f6f5",
+                        "background-dark": "#221610",
+                    },
+                    fontFamily: {
+                        "display": ["Inter"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "0.75rem",
+                        "xl": "1rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .table-tight td, .table-tight th {
+            padding: 0.75rem 1rem;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display">
+<div class="flex h-screen overflow-hidden">
+<!-- Sidebar -->
+<aside class="w-64 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col">
+<div class="p-6 border-b border-slate-200 dark:border-slate-800">
+<h1 class="text-primary text-lg font-bold uppercase tracking-wider">GPS Auto</h1>
+<p class="text-slate-500 text-xs mt-1">Management Portal</p>
+</div>
+<nav class="flex-1 px-4 py-6 space-y-1">
+<a class="flex items-center px-4 py-2 text-sm font-medium bg-primary/10 text-primary rounded-lg" href="#">
+                    Dashboard
+                </a>
+<a class="flex items-center px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg" href="#">
+                    History
+                </a>
+<a class="flex items-center px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg" href="#">
+                    Profile
+                </a>
+</nav>
+<div class="p-4 border-t border-slate-200 dark:border-slate-800">
+<button class="w-full py-2 text-sm font-bold text-slate-600 dark:text-slate-400 hover:text-primary border border-slate-200 dark:border-slate-700 rounded-lg">
+                    Logout
+                </button>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 flex flex-col overflow-hidden">
+<!-- Header -->
+<header class="h-16 flex items-center justify-between px-8 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+<h2 class="text-primary text-xl font-bold">Vendor Coordinator Console</h2>
+<button class="bg-primary text-white px-4 py-2 text-xs font-bold rounded uppercase tracking-tighter rounded-lg">
+                    Logout
+                </button>
+</header>
+<!-- Dashboard Content -->
+<div class="flex-1 overflow-y-auto p-8">
+<!-- KPI Cards -->
+<div class="grid grid-cols-3 gap-6 mb-8">
+<div class="bg-white dark:bg-slate-900 p-6 border border-slate-200 dark:border-slate-800 rounded-lg rounded-xl">
+<p class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Total Pending</p>
+<p class="text-3xl font-bold text-slate-900 dark:text-white">128</p>
+</div>
+<div class="bg-white dark:bg-slate-900 p-6 border border-slate-200 dark:border-slate-800 rounded-lg rounded-xl">
+<p class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">FO Pending</p>
+<p class="text-3xl font-bold text-slate-900 dark:text-white">45</p>
+</div>
+<div class="bg-white dark:bg-slate-900 p-6 border border-slate-200 dark:border-slate-800 rounded-lg rounded-xl">
+<p class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Completed</p>
+<p class="text-3xl font-bold text-slate-900 dark:text-white">892</p>
+</div>
+</div>
+<!-- Filters Row -->
+<div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-4 mb-4 rounded-xl">
+<div class="flex flex-wrap items-end gap-4">
+<div class="flex-1 min-w-[240px]">
+<label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Search</label>
+<input class="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-sm focus:ring-primary focus:border-primary rounded" placeholder="Request ID, Client, or City..." type="text"/>
+</div>
+<div class="w-40">
+<label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">From Date</label>
+<input class="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-sm focus:ring-primary focus:border-primary rounded" type="date"/>
+</div>
+<div class="w-40">
+<label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">To Date</label>
+<input class="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-sm focus:ring-primary focus:border-primary rounded" type="date"/>
+</div>
+<div class="flex gap-2">
+<button class="px-4 py-2 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-50 rounded uppercase rounded-lg">
+                                Clear Dates
+                            </button>
+<button class="px-4 py-2 bg-primary text-white text-xs font-bold hover:bg-primary/90 rounded uppercase transition-colors shadow-sm rounded-lg">Download CSV</button>
+</div>
+</div>
+</div>
+<!-- Selection Action Bar -->
+<div class="bg-primary/5 border border-primary/20 rounded-lg p-3 mb-4 flex items-center justify-between rounded-xl">
+<div class="flex items-center gap-4">
+<span class="text-xs font-bold text-slate-700 dark:text-slate-300">8 Items Selected</span>
+<div class="h-4 w-px bg-primary/20"></div>
+<button class="text-primary text-[11px] font-bold uppercase hover:underline">Bulk Notify Vendor</button>
+<button class="text-primary text-[11px] font-bold uppercase hover:underline">Notify FO</button>
+</div>
+<button class="text-slate-500 text-[11px] font-bold uppercase hover:text-slate-800">Clear Selection</button>
+</div>
+<!-- Table -->
+<div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden shadow-sm rounded-xl">
+<table class="w-full text-left table-tight border-collapse">
+<thead class="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
+<tr>
+<th class="w-10"><input class="rounded border-slate-300 text-primary focus:ring-primary" type="checkbox"/></th>
+<th class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Request ID</th>
+<th class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Status</th>
+<th class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Client</th>
+<th class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Service</th>
+<th class="text-[10px] font-bold text-slate-500 uppercase tracking-wider text-center">Vehicles</th>
+<th class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Date</th>
+<th class="text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+<!-- Row 1 -->
+<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+<td><input class="rounded border-slate-300 text-primary focus:ring-primary" type="checkbox"/></td>
+<td class="text-sm text-slate-900 dark:text-slate-100 font-medium">GPS-9921</td>
+<td><span class="px-2 py-0.5 text-[10px] font-bold rounded bg-orange-100 text-orange-700 uppercase">Vendor Pending</span></td>
+<td class="text-sm text-slate-600 dark:text-slate-400">Logistics Corp</td>
+<td class="text-sm text-slate-600 dark:text-slate-400">Installation</td>
+<td class="text-sm text-slate-900 dark:text-slate-100 text-center font-bold">12</td>
+<td class="text-sm text-slate-600 dark:text-slate-400">Oct 24, 2023</td>
+<td class="text-right whitespace-nowrap">
+<div class="flex justify-end gap-3"><button class="px-1.5 py-1 text-[9px] font-bold uppercase tracking-tighter border border-primary text-primary hover:bg-primary/5 rounded">View</button><button class="px-1.5 py-1 text-[9px] font-bold uppercase tracking-tighter border border-primary text-primary hover:bg-primary/5 rounded">Notify Vendor</button><button class="px-1.5 py-1 text-[9px] font-bold uppercase tracking-tighter bg-primary text-white hover:bg-primary/90 rounded">Notify FO</button></div>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+<td><input class="rounded border-slate-300 text-primary focus:ring-primary" type="checkbox"/></td>
+<td class="text-sm text-slate-900 dark:text-slate-100 font-medium">GPS-9920</td>
+<td><span class="px-2 py-0.5 text-[10px] font-bold rounded bg-blue-100 text-blue-700 uppercase">FO Review</span></td>
+<td class="text-sm text-slate-600 dark:text-slate-400">Fleet Master</td>
+<td class="text-sm text-slate-600 dark:text-slate-400">Maintenance</td>
+<td class="text-sm text-slate-900 dark:text-slate-100 text-center font-bold">04</td>
+<td class="text-sm text-slate-600 dark:text-slate-400">Oct 23, 2023</td>
+<td class="text-right whitespace-nowrap">
+<div class="flex justify-end gap-3"><button class="px-1.5 py-1 text-[9px] font-bold uppercase tracking-tighter border border-primary text-primary hover:bg-primary/5 rounded">View</button><button class="px-1.5 py-1 text-[9px] font-bold uppercase tracking-tighter border border-primary text-primary hover:bg-primary/5 rounded">Notify Vendor</button><button class="px-1.5 py-1 text-[9px] font-bold uppercase tracking-tighter bg-primary text-white hover:bg-primary/90 rounded">Notify FO</button></div>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors bg-primary/5">
+<td><input checked="" class="rounded border-slate-300 text-primary focus:ring-primary" type="checkbox"/></td>
+<td class="text-sm text-slate-900 dark:text-slate-100 font-medium">GPS-9919</td>
+<td><span class="px-2 py-0.5 text-[10px] font-bold rounded bg-orange-100 text-orange-700 uppercase">Vendor Pending</span></td>
+<td class="text-sm text-slate-600 dark:text-slate-400">Apex Delivery</td>
+<td class="text-sm text-slate-600 dark:text-slate-400">Repairs</td>
+<td class="text-sm text-slate-900 dark:text-slate-100 text-center font-bold">25</td>
+<td class="text-sm text-slate-600 dark:text-slate-400">Oct 23, 2023</td>
+<td class="text-right whitespace-nowrap">
+<div class="flex justify-end gap-3"><button class="px-1.5 py-1 text-[9px] font-bold uppercase tracking-tighter border border-primary text-primary hover:bg-primary/5 rounded">View</button><button class="px-1.5 py-1 text-[9px] font-bold uppercase tracking-tighter border border-primary text-primary hover:bg-primary/5 rounded">Notify Vendor</button><button class="px-1.5 py-1 text-[9px] font-bold uppercase tracking-tighter bg-primary text-white hover:bg-primary/90 rounded">Notify FO</button></div>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+<td><input class="rounded border-slate-300 text-primary focus:ring-primary" type="checkbox"/></td>
+<td class="text-sm text-slate-900 dark:text-slate-100 font-medium">GPS-9918</td>
+<td><span class="px-2 py-0.5 text-[10px] font-bold rounded bg-green-100 text-green-700 uppercase">Completed</span></td>
+<td class="text-sm text-slate-600 dark:text-slate-400">City Transit</td>
+<td class="text-sm text-slate-600 dark:text-slate-400">Installation</td>
+<td class="text-sm text-slate-900 dark:text-slate-100 text-center font-bold">08</td>
+<td class="text-sm text-slate-600 dark:text-slate-400">Oct 22, 2023</td>
+<td class="text-right whitespace-nowrap">
+<div class="flex justify-end gap-3"><button class="px-1.5 py-1 text-[9px] font-bold uppercase tracking-tighter border border-primary text-primary hover:bg-primary/5 rounded">View</button><button class="px-1.5 py-1 text-[9px] font-bold uppercase tracking-tighter border border-primary text-primary hover:bg-primary/5 rounded">Notify Vendor</button><button class="px-1.5 py-1 text-[9px] font-bold uppercase tracking-tighter bg-primary text-white hover:bg-primary/90 rounded">Notify FO</button></div>
+</td>
+</tr>
+<!-- Row 5 -->
+<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+<td><input class="rounded border-slate-300 text-primary focus:ring-primary" type="checkbox"/></td>
+<td class="text-sm text-slate-900 dark:text-slate-100 font-medium">GPS-9917</td>
+<td><span class="px-2 py-0.5 text-[10px] font-bold rounded bg-orange-100 text-orange-700 uppercase">Vendor Pending</span></td>
+<td class="text-sm text-slate-600 dark:text-slate-400">Global Supply</td>
+<td class="text-sm text-slate-600 dark:text-slate-400">Removal</td>
+<td class="text-sm text-slate-900 dark:text-slate-100 text-center font-bold">02</td>
+<td class="text-sm text-slate-600 dark:text-slate-400">Oct 22, 2023</td>
+<td class="text-right whitespace-nowrap">
+<div class="flex justify-end gap-3"><button class="px-1.5 py-1 text-[9px] font-bold uppercase tracking-tighter border border-primary text-primary hover:bg-primary/5 rounded">View</button><button class="px-1.5 py-1 text-[9px] font-bold uppercase tracking-tighter border border-primary text-primary hover:bg-primary/5 rounded">Notify Vendor</button><button class="px-1.5 py-1 text-[9px] font-bold uppercase tracking-tighter bg-primary text-white hover:bg-primary/90 rounded">Notify FO</button></div>
+</td>
+</tr>
+<!-- Row 6 -->
+<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors bg-primary/5">
+<td><input checked="" class="rounded border-slate-300 text-primary focus:ring-primary" type="checkbox"/></td>
+<td class="text-sm text-slate-900 dark:text-slate-100 font-medium">GPS-9916</td>
+<td><span class="px-2 py-0.5 text-[10px] font-bold rounded bg-blue-100 text-blue-700 uppercase">FO Review</span></td>
+<td class="text-sm text-slate-600 dark:text-slate-400">Swift Carriers</td>
+<td class="text-sm text-slate-600 dark:text-slate-400">Installation</td>
+<td class="text-sm text-slate-900 dark:text-slate-100 text-center font-bold">15</td>
+<td class="text-sm text-slate-600 dark:text-slate-400">Oct 21, 2023</td>
+<td class="text-right whitespace-nowrap">
+<div class="flex justify-end gap-3"><button class="px-1.5 py-1 text-[9px] font-bold uppercase tracking-tighter border border-primary text-primary hover:bg-primary/5 rounded">View</button><button class="px-1.5 py-1 text-[9px] font-bold uppercase tracking-tighter border border-primary text-primary hover:bg-primary/5 rounded">Notify Vendor</button><button class="px-1.5 py-1 text-[9px] font-bold uppercase tracking-tighter bg-primary text-white hover:bg-primary/90 rounded">Notify FO</button></div>
+</td>
+</tr>
+</tbody>
+</table>
+<!-- Pagination (Operational/Dense) -->
+<div class="p-4 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+<span class="text-xs text-slate-500 font-medium">Showing 1-10 of 128 requests</span>
+<div class="flex gap-1">
+<button class="px-3 py-1 text-xs font-bold border border-slate-200 dark:border-slate-700 text-slate-400 cursor-not-allowed rounded uppercase rounded-lg">Prev</button>
+<button class="px-3 py-1 text-xs font-bold bg-primary text-white rounded uppercase rounded-lg">1</button>
+<button class="px-3 py-1 text-xs font-bold border border-slate-200 dark:border-slate-700 hover:bg-slate-50 rounded uppercase rounded-lg">2</button>
+<button class="px-3 py-1 text-xs font-bold border border-slate-200 dark:border-slate-700 hover:bg-slate-50 rounded uppercase rounded-lg">3</button>
+<button class="px-3 py-1 text-xs font-bold border border-slate-200 dark:border-slate-700 hover:bg-slate-50 rounded uppercase rounded-lg">Next</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

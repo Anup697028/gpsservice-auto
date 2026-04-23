@@ -2,8 +2,8 @@
 
 ## ✅ Updated Configuration
 
-**Email**: anupgogeri4@gmail.com  
-**App Password**: mboc gtzs ipii puid  
+**Email**: your-email@gmail.com  
+**App Password**: [REDACTED - store in local env only]  
 **SMTP Host**: smtp.gmail.com  
 **Port**: 587
 
@@ -25,11 +25,11 @@ This will deploy the Cloud Functions with your Gmail SMTP credentials.
 
 ## 🧪 Current Status
 
-- ✅ **SMTP Credentials**: Updated to anupgogeri4@gmail.com
+- ✅ **SMTP Credentials**: Configured via local/secure environment
 - ✅ **Bypass Code**: Working (123456) for development testing
 - ⏳ **Real OTPs**: Pending deployment by admin
 
-Once deployed, OTPs will be sent to **any email address** from `anupgogeri4@gmail.com`.
+Once deployed, OTPs will be sent to **any email address** from your configured sender account.
 
 ## 🔧 Alternative: Test Locally with Emulator
 

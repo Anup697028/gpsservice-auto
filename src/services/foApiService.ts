@@ -1,3 +1,6 @@
+import { auth } from './firebase';
+import { fetchWithApiFallback } from './apiBase';
+
 export type VehicleRecord = {
   vehicleNumber: string;
   city: string;
@@ -12,74 +15,127 @@ export type VehicleValidationResult = {
   clientName?: string;
 };
 
-export const foApiService = {
-  // Mock API to fetch vehicles
-  // In production, replace with actual API endpoint
+const DEFAULT_MOCK_VEHICLES: VehicleRecord[] = [];
 
+const normalizeVehicleNumber = (value: string) => value.trim().toUpperCase();
+const normalizeVehicleNumberKey = (value: string) => normalizeVehicleNumber(value).replace(/[^A-Z0-9]/g, '');
+
+const fallbackValidation = (vehicleNumber: string): VehicleValidationResult => ({
+  vehicleNumber: normalizeVehicleNumber(vehicleNumber),
+  isRegistered: false,
+  city: '',
+  clientName: '',
+});
+
+const getAuthHeaders = async () => {
+  const currentUser = auth.currentUser;
+  const idToken = currentUser ? await currentUser.getIdToken() : '';
+
+  return {
+    'Content-Type': 'application/json',
+    ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
+  };
+};
+
+const parseVehicleFromResponse = (payload: unknown): VehicleValidationResult | null => {
+  if (!payload || typeof payload !== 'object') {
+    return null;
+  }
+
+  const source = payload as Record<string, unknown>;
+  const candidate = (source.data as Record<string, unknown> | undefined) ?? source;
+  const vehicleNumber = normalizeVehicleNumber(String(candidate.vehicleNumber || source.vehicleNumber || ''));
+
+  if (!vehicleNumber) {
+    return null;
+  }
+
+  const isRegistered =
+    candidate.isRegistered === true ||
+    String(candidate.isRegistered || '').toLowerCase() === 'true';
+
+  return {
+    vehicleNumber,
+    isRegistered,
+    city: String(candidate.city || ''),
+    clientName: String(candidate.clientName || ''),
+  };
+};
+
+const fetchJson = async (path: string, init?: RequestInit) => {
+  const response = await fetchWithApiFallback(
+    path,
+    init,
+    import.meta.env.VITE_FO_API_BASE_URL,
+    import.meta.env.VITE_API_BASE_URL,
+    import.meta.env.VITE_FUNCTIONS_BASE_URL,
+  );
+
+  if (!response.ok) {
+    throw new Error(`FO API request failed (${response.status})`);
+  }
+
+  return response.json();
+};
+
+export const foApiService = {
   validateVehicle: async (vehicleNumber: string): Promise<VehicleValidationResult> => {
-    // Simulate API call to validate vehicle
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        // Mock validation - in production, check against company vehicle registry
-        const mockVehicles = [
-          { vehicleNumber: 'KA-01-AB-1234', isRegistered: true, city: 'Bangalore', clientName: 'Tech Corp' },
-          { vehicleNumber: 'KA-01-AB-1235', isRegistered: true, city: 'Bangalore', clientName: 'Tech Corp' },
-          { vehicleNumber: 'MH-02-CD-5678', isRegistered: true, city: 'Mumbai', clientName: 'Auto Fleet' },
-          { vehicleNumber: 'DL-01-EF-9012', isRegistered: true, city: 'Delhi', clientName: 'Capital Motors' },
-        ];
-        
-        const found = mockVehicles.find(v => v.vehicleNumber.toUpperCase() === vehicleNumber.toUpperCase());
-        if (found) {
-          resolve(found);
-        } else {
-          resolve({ vehicleNumber, isRegistered: false });
-        }
-      }, 300);
-    });
+    const normalizedVehicle = normalizeVehicleNumber(vehicleNumber);
+
+    try {
+      const headers = await getAuthHeaders();
+      const payload = await fetchJson('/validateVehicle', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ vehicleNumber: normalizedVehicle }),
+      });
+
+      const parsed = parseVehicleFromResponse(payload);
+      return parsed ?? fallbackValidation(normalizedVehicle);
+    } catch (error) {
+      console.warn('FO API validateVehicle failed, using fallback:', error);
+      return fallbackValidation(normalizedVehicle);
+    }
   },
 
   getVehicles: async (): Promise<VehicleRecord[]> => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve([
-          {
-            vehicleNumber: 'KA-01-AB-1234',
-            city: 'Bangalore',
-            clientName: 'Tech Corp',
-            isRegistered: true,
-          },
-          {
-            vehicleNumber: 'KA-01-AB-1235',
-            city: 'Bangalore',
-            clientName: 'Tech Corp',
-            isRegistered: true,
-          },
-          {
-            vehicleNumber: 'KA-01-AB-1236',
-            city: 'Bangalore',
-            clientName: 'Tech Corp',
-            isRegistered: false,
-          },
-          {
-            vehicleNumber: 'MH-02-CD-5678',
-            city: 'Mumbai',
-            clientName: 'Auto Fleet',
-            isRegistered: true,
-          },
-          {
-            vehicleNumber: 'MH-02-CD-5679',
-            city: 'Mumbai',
-            clientName: 'Auto Fleet',
-            isRegistered: true,
-          },
-          {
-            vehicleNumber: 'DL-01-EF-9012',
-            city: 'Delhi',
-            clientName: 'Capital Motors',
-            isRegistered: true,
-          },
-        ]);
-      }, 500);
-    });
+    try {
+      const headers = await getAuthHeaders();
+      const payload = await fetchJson('/vehicles', {
+        method: 'GET',
+        headers,
+      });
+
+      const source = (payload as Record<string, unknown>)?.data ?? payload;
+      if (!Array.isArray(source)) {
+        return DEFAULT_MOCK_VEHICLES;
+      }
+
+      return source
+        .map((entry) => {
+          if (!entry || typeof entry !== 'object') {
+            return null;
+          }
+
+          const vehicle = entry as Record<string, unknown>;
+          const vehicleNumber = normalizeVehicleNumber(String(vehicle.vehicleNumber || ''));
+          if (!vehicleNumber) {
+            return null;
+          }
+
+          return {
+            vehicleNumber,
+            city: String(vehicle.city || ''),
+            clientName: String(vehicle.clientName || ''),
+            isRegistered:
+              vehicle.isRegistered === true ||
+              String(vehicle.isRegistered || '').toLowerCase() === 'true',
+          } as VehicleRecord;
+        })
+        .filter((item): item is VehicleRecord => item !== null);
+    } catch (error) {
+      console.warn('FO API getVehicles failed, using fallback:', error);
+      return DEFAULT_MOCK_VEHICLES;
+    }
   },
 };

@@ -1,25 +1,24 @@
 .request-card {
-  background: linear-gradient(to bottom, #ffffff 0%, #f8faf9 100%);
-  border-radius: 18px;
-  box-shadow: var(--shadow-soft);
+  background: var(--card-bg);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--card-shadow);
   overflow: visible;
-  transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: border-color 0.2s, box-shadow 0.2s;
   display: flex;
   flex-direction: column;
   height: 100%;
-  border: 1px solid var(--border);
+  border: 1px solid var(--card-border);
   position: relative;
 }
 
 .request-card:hover {
-  box-shadow: var(--shadow-strong);
-  transform: translateY(-4px);
-  border-color: var(--primary);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.1);
+  border-color: var(--primary-soft-border);
 }
 
 .request-card-header {
   padding: 1rem;
-  border-bottom: 1px solid var(--gray-200);
+  border-bottom: 1px solid var(--card-border);
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -35,7 +34,7 @@
 .request-card-header p {
   margin: 0.25rem 0 0;
   font-size: 0.85rem;
-  color: var(--text-muted);
+  color: var(--gray-500);
 }
 
 .request-card-body {
@@ -52,33 +51,33 @@
 
 .request-info-row .label {
   font-weight: 500;
-  color: var(--gray-600);
+  color: var(--gray-500);
 }
 
 .request-info-row span:last-child {
-  color: var(--gray-900);
+  color: var(--gray-800);
 }
 
 .service-badge {
   display: inline-block;
-  padding: 0.35rem 0.9rem;
-  border-radius: 20px;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
   font-size: 0.85rem;
-  font-weight: 700;
-  background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
-  color: white;
-  box-shadow: 0 4px 12px rgba(15, 118, 110, 0.35);
+  font-weight: 600;
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+  border: 1px solid var(--primary-soft-border);
   letter-spacing: 0.02em;
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 .request-card-footer {
   padding: 1rem;
-  border-top: 1px solid var(--gray-200);
+  border-top: 1px solid var(--card-border);
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
-  background: linear-gradient(to bottom, #ffffff 0%, #f7f9fb 100%);
+  background: var(--surface);
 }
 
 .request-card-footer .btn {
@@ -86,42 +85,70 @@
   font-size: 0.9rem;
   flex: 1;
   min-width: 130px;
-  font-weight: 600;
-  border: none;
-  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
-  transition: all 0.25s ease;
+  font-weight: 700;
+  border: 1px solid transparent;
+  box-shadow: none;
+  transition: background-color 0.2s, border-color 0.2s, transform 0.2s;
 }
 
 .request-card-footer .btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.18);
+  transform: none;
 }
 
 .request-card-footer .btn-danger {
-  background: linear-gradient(135deg, var(--danger) 0%, #b93b3b 100%);
+  background: var(--danger);
+  border: 1px solid var(--danger);
   color: white;
 }
 
 .request-card-footer .btn-danger:hover {
-  background: linear-gradient(135deg, #b93b3b 0%, #9f2f2f 100%);
-  box-shadow: 0 10px 24px rgba(208, 75, 75, 0.35);
+  background: var(--danger-strong);
+  border-color: var(--danger-strong);
 }
 
 .request-card-footer .btn-secondary {
-  background: linear-gradient(135deg, #566070 0%, #3f4b5c 100%);
-  color: white;
+  background: var(--surface);
+  border: 1px solid var(--control-border);
+  color: var(--gray-700);
 }
 
 .request-card-footer .btn-secondary:hover {
-  background: linear-gradient(135deg, #3f4b5c 0%, #2f3946 100%);
+  background: var(--gray-50);
+  border-color: var(--gray-400);
 }
 
 .request-card-footer .btn-primary {
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-strong) 100%);
+  background: var(--primary);
+  border: 1px solid var(--primary);
   color: white;
 }
 
 .request-card-footer .btn-primary:hover {
-  background: linear-gradient(135deg, var(--primary-strong) 0%, #0f3d41 100%);
-  box-shadow: 0 10px 24px rgba(31, 111, 120, 0.35);
+  background: var(--primary-strong);
+  border-color: var(--primary-strong);
+}
+
+@media (max-width: 768px) {
+  .request-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.6rem;
+  }
+
+  .request-info-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.2rem;
+    margin-bottom: 0.6rem;
+  }
+
+  .request-card-footer {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .request-card-footer .btn {
+    width: 100%;
+    min-width: 0;
+  }
 }

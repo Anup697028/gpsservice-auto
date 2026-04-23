@@ -1,0 +1,135 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String   @id
+  email            String   @unique
+  emailNormalized  String   @unique
+  role             String?
+  name             String?
+  employeeId       String?
+  phoneNumber      String?
+  profileCompleted Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model Request {
+  id                        Int              @id @default(autoincrement())
+  requestDisplayId          String?          @unique
+  firebaseId                String?          @unique
+  status                    String           @default("REQUEST_CREATED")
+  createdBy                 String?
+  createdByEmail            String?
+  city                      String?
+  clientName                String?
+  isBulkRequest             Boolean          @default(false)
+  vehicleCount              Int              @default(0)
+  assignedRhUserId          String?
+  assignedRhEmail           String?
+  assignedRhEmailNormalized String?
+  rhStatus                  String?
+  rhApproval                Boolean          @default(false)
+  rhApprovedAt              DateTime?
+  rhApprovalNotes           String?
+  rhRejectedAt              DateTime?
+  rejectionReason           String?
+  paymentStatus             String?
+  paymentApproved           Boolean          @default(false)
+  paymentRejected           Boolean          @default(false)
+  paymentActionTaken        Boolean          @default(false)
+  paymentApprovedAt         DateTime?
+  paymentRejectedAt         DateTime?
+  paymentApproverName       String?
+  vendorName                String?
+  vendorStatus              String?
+  vendorNotified            Boolean          @default(false)
+  vendorApprovedBy          String?
+  vendorApprovedAt          DateTime?
+  vendorBulkMailSentAt      DateTime?
+  assignedFoId              String?
+  assignedFoEmail           String?
+  foNotified                Boolean          @default(false)
+  foNotifiedAt              DateTime?
+  foBulkNotifyEnabled       Boolean          @default(false)
+  createdAt                 DateTime         @default(now())
+  updatedAt                 DateTime         @updatedAt
+  ltpocDetails              LtpocDetail[]
+  history                   RequestHistory[]
+  vehicles                  RequestVehicle[]
+}
+
+model RequestVehicle {
+  id                          Int       @id @default(autoincrement())
+  requestId                   Int
+  vehicleNumber               String?
+  city                        String?
+  serviceType                 String?
+  rhRejected                  Boolean   @default(false)
+  rhRejectionReason           String?
+  paymentApproved             Boolean   @default(false)
+  paymentRejected             Boolean   @default(false)
+  paymentActionTaken          Boolean   @default(false)
+  paymentApprovedAt           DateTime?
+  paymentRejectedAt           DateTime?
+  paymentRejectionReason      String?
+  vendorNotified              Boolean   @default(false)
+  vendorName                  String?
+  vehicleAvailabilityLocation String?
+  vehicleAvailableTime        String?
+  createdAt                   DateTime  @default(now())
+  updatedAt                   DateTime  @updatedAt
+  request                     Request   @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([requestId])
+}
+
+model LtpocDetail {
+  id            Int      @id @default(autoincrement())
+  requestId     Int
+  vehicleNumber String?
+  ltpocName     String?
+  ltpocPhone    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  request       Request  @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([requestId])
+}
+
+model RequestHistory {
+  id         Int      @id @default(autoincrement())
+  requestId  Int
+  userId     String?
+  userName   String?
+  role       String?
+  action     String?
+  statusFrom String?
+  statusTo   String?
+  notes      String?
+  createdAt  DateTime @default(now())
+  request    Request  @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([requestId])
+  @@index([createdAt])
+}
+
+model Notification {
+  id               Int       @id @default(autoincrement())
+  requestId        Int?
+  recipientEmail   String?
+  recipientRole    String?
+  notificationType String?
+  status           String    @default("PENDING")
+  sentAt           DateTime?
+  failureReason    String?
+  retryCount       Int       @default(0)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}

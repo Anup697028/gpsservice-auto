@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ec5b13",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#221610",
+                    },
+                    fontFamily: {
+                        "display": ["Public Sans"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Public Sans', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+    </style>
+</head>
+<body class="bg-slate-200 dark:bg-background-dark min-h-screen flex items-center justify-center p-4">
+<!-- Modal Container -->
+<div class="bg-white dark:bg-background-dark w-full max-w-lg shadow-2xl rounded-none border border-slate-200 dark:border-primary/20 overflow-hidden">
+<!-- Header -->
+<div class="flex items-center justify-between px-8 py-6 border-b border-slate-100 dark:border-primary/10">
+<h1 class="text-primary text-2xl font-light tracking-tight">Edit &amp; Approve Request</h1>
+<button class="text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors">
+<span class="material-symbols-outlined text-2xl">close</span>
+</button>
+</div>
+<div class="p-8">
+<!-- Alert/Information Message (Context: Status is PARALLEL_REVIEW) -->
+<div class="mb-8 p-4 bg-primary/5 border-l-4 border-primary">
+<p class="text-sm text-slate-800 dark:text-slate-200">
+                    Editing allowed only during Parallel Review.
+                </p>
+</div>
+<!-- Form Fields -->
+<div class="space-y-6">
+<!-- Client Name -->
+<div class="flex flex-col gap-2">
+<label class="text-sm font-normal text-slate-900 dark:text-slate-100 uppercase tracking-wider">Client Name</label>
+<input class="w-full px-4 py-3 border border-slate-300 dark:border-primary/30 rounded-none focus:ring-1 focus:ring-primary focus:border-primary bg-transparent text-slate-900 dark:text-slate-100 outline-none transition-all placeholder:text-slate-400" placeholder="Enter client name" type="text" value="Global Logistics Corp"/>
+</div>
+<!-- City -->
+<div class="flex flex-col gap-2">
+<label class="text-sm font-normal text-slate-900 dark:text-slate-100 uppercase tracking-wider">City</label>
+<input class="w-full px-4 py-3 border border-slate-300 dark:border-primary/30 rounded-none focus:ring-1 focus:ring-primary focus:border-primary bg-transparent text-slate-900 dark:text-slate-100 outline-none transition-all placeholder:text-slate-400" placeholder="Enter city" type="text" value="Chicago"/>
+</div>
+<!-- Bulk Request Constraint (Informational) -->
+<div class="pt-2">
+<p class="text-xs text-slate-500 dark:text-slate-400 italic">
+                        Note: Bulk requests cannot be edited at this stage.
+                    </p>
+</div>
+</div>
+</div>
+<!-- Footer Actions -->
+<div class="flex flex-col sm:flex-row-reverse gap-3 px-8 pb-8 pt-4">
+<button class="w-full sm:w-auto px-8 py-3 bg-primary hover:bg-primary/90 text-white text-sm font-medium tracking-widest uppercase transition-colors rounded-none shadow-lg shadow-primary/20">
+                SAVE &amp; APPROVE
+            </button>
+<button class="w-full sm:w-auto px-8 py-3 border border-slate-300 dark:border-primary/30 text-slate-700 dark:text-slate-200 text-sm font-medium tracking-widest uppercase hover:bg-slate-50 dark:hover:bg-primary/5 transition-colors rounded-none">
+                CANCEL
+            </button>
+</div>
+</div>
+<!-- Hidden visual for map-related context if needed in backgrounds -->
+<div class="hidden" data-location="Chicago" style=""></div>
+</body></html>

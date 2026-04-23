@@ -1,195 +1,234 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+﻿import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Login } from './pages/Login';
+import { Register } from './pages/Register.jsx';
 import { FoDashboard } from './pages/FoDashboard.tsx';
+import FoHistory from './pages/FoHistory.tsx';
+import FoCancelled from './pages/FoCancelled.tsx';
+import FoProfile from './pages/FoProfile.tsx';
 import { RhDashboard } from './pages/RhDashboard.tsx';
+import RhHistory from './pages/RhHistory.tsx';
+import RhProfile from './pages/RhProfile.tsx';
 import { PaymentDashboard } from './pages/PaymentDashboard.tsx';
+import PaymentHistory from './pages/PaymentHistory.tsx';
+import PaymentProfile from './pages/PaymentProfile.tsx';
 import { VendorDashboard } from './pages/VendorDashboard.tsx';
-import { AdminStats } from './pages/AdminStats.tsx';
+import VendorHistory from './pages/VendorHistory.tsx';
+import VendorProfile from './pages/VendorProfile.tsx';
+import { ProfileCompletionModal } from './components/ProfileCompletionModal.jsx';
+import { Loader } from './components/Loader';
 import './App.css';
+
+const normalizeRole = (value) => {
+  const normalized = String(value || '').trim().toUpperCase().replace(/\s+/g, '_');
+  if (normalized === 'FIELD_OPERATOR') {
+    return 'FO';
+  }
+  if (normalized === 'REGIONAL_HEAD') {
+    return 'RH';
+  }
+  return normalized;
+};
+
+const ROLE_ROUTE_MAP = {
+  FO: '/fo-dashboard',
+  RH: '/rh-dashboard',
+  PAYMENT: '/payment-dashboard',
+  VENDOR: '/vendor-dashboard',
+};
 
 const ProtectedRoute = ({ children, requiredRole = null }) => {
   const { user, userRole, loading } = useAuth();
+  const normalizedUserRole = normalizeRole(userRole);
+  const normalizedRequiredRole = normalizeRole(requiredRole);
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <Loader />;
   }
 
   if (!user) {
     return <Navigate to="/login" replace />;
   }
 
-  if (requiredRole && userRole !== requiredRole) {
-    return <Navigate to="/unauthorized" replace />;
+  if (normalizedRequiredRole) {
+    if (!normalizedUserRole) {
+      return <Loader />;
+    }
+
+    if (normalizedUserRole !== normalizedRequiredRole) {
+      return <Navigate to="/unauthorized" replace />;
+    }
   }
 
   return children;
 };
 
-function AppRoutes() {
-  const { user } = useAuth();
-
-  return (
-    <Routes>
-      <Route path="/login" element={<Login />} />
-
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/fo-dashboard"
-        element={
-          <ProtectedRoute requiredRole="FO">
-            <FoDashboard />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/rh-dashboard"
-        element={
-          <ProtectedRoute requiredRole="RH">
-            <RhDashboard />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/payment-dashboard"
-        element={
-          <ProtectedRoute requiredRole="PAYMENT">
-            <PaymentDashboard />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/vendor-dashboard"
-        element={
-          <ProtectedRoute requiredRole="VENDOR">
-            <VendorDashboard />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/admin"
-        element={
-          <ProtectedRoute requiredRole="ADMIN">
-            <AdminStats />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route path="/unauthorized" element={<Unauthorized />} />
-      <Route path="*" element={<Navigate to="/login" replace />} />
-    </Routes>
-  );
-}
-
-const Dashboard = () => {
+const DashboardRedirect = () => {
   const { user, userRole, loading } = useAuth();
-  const navigate = useNavigate();
-  const [waitTime, setWaitTime] = React.useState(0);
+  const normalizedUserRole = normalizeRole(userRole);
 
-  React.useEffect(() => {
-    console.log('Dashboard - loading:', loading, 'user:', user?.email, 'userRole:', userRole);
-  }, [loading, user, userRole]);
+  if (loading) {
+    return <Loader />;
+  }
 
-  // Track how long we've been waiting
-  React.useEffect(() => {
-    const timer = setInterval(() => {
-      setWaitTime((prev) => prev + 1);
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
 
-  const getDashboardRoute = () => {
-    switch (userRole) {
-      case 'FO':
-        return '/fo-dashboard';
-      case 'RH':
-        return '/rh-dashboard';
-      case 'PAYMENT':
-        return '/payment-dashboard';
-      case 'VENDOR':
-        return '/vendor-dashboard';
-      default:
-        return null;
-    }
-  };
+  if (!normalizedUserRole) {
+    return <Loader />;
+  }
 
-  React.useEffect(() => {
-    // If still loading auth, wait
-    if (loading) {
-      console.log('Still loading auth...');
-      return;
-    }
-
-    // If no user, go to login
-    if (!user) {
-      console.log('No user, redirecting to login');
-      navigate('/login');
-      return;
-    }
-
-    if (!userRole) {
-      console.warn('User role is not assigned yet, waiting for Firestore user role.');
-      return;
-    }
-
-    const assignedRole = userRole;
-    const route = assignedRole === 'FO' ? '/fo-dashboard' 
-                : assignedRole === 'RH' ? '/rh-dashboard'
-                : assignedRole === 'PAYMENT' ? '/payment-dashboard'
-                : assignedRole === 'VENDOR' ? '/vendor-dashboard'
-                : assignedRole === 'ADMIN' ? '/admin'
-                : null;
-    
-    console.log('User assigned role:', assignedRole, '| Redirecting to:', route);
-    if (route) {
-      navigate(route);
-    } else {
-      console.error('Unknown role:', assignedRole);
-      navigate('/unauthorized');
-    }
-  }, [userRole, user, loading, navigate]);
-
-  return (
-    <div style={{ textAlign: 'center', padding: '40px' }}>
-      <h2>Loading your dashboard...</h2>
-      <p>Please wait while we prepare your workspace.</p>
-      {waitTime > 3 && (
-        <p style={{ color: '#666', marginTop: '20px' }}>
-          Taking longer than expected... ({waitTime}s)
-        </p>
-      )}
-      {user && !userRole && waitTime > 2 && (
-        <div style={{ marginTop: '20px', padding: '10px', background: '#fff3cd', borderRadius: '4px' }}>
-          <p><strong>Debug Info:</strong></p>
-          <p>User: {user.email}</p>
-          <p>Role: {userRole || 'Not set'}</p>
-          <p>Loading: {loading ? 'Yes' : 'No'}</p>
-        </div>
-      )}
-    </div>
-  );
+  const nextRoute = ROLE_ROUTE_MAP[normalizedUserRole] || '/unauthorized';
+  return <Navigate to={nextRoute} replace />;
 };
 
-const Unauthorized = () => (
-  <div className="error-page">
-    <h1>Access Denied</h1>
-    <p>You do not have permission to access this page.</p>
-    <a href="/login">Back to Login</a>
-  </div>
-);
+function AppRoutes() {
+  const { user, needsProfileCompletion, profileLoading } = useAuth();
+  const location = useLocation();
+  const isAuthRoute = location.pathname === '/login' || location.pathname === '/register';
+
+  return (
+    <>
+      <Routes>
+        <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <Login />} />
+        <Route path="/register" element={user ? <Navigate to="/dashboard" replace /> : <Register />} />
+
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <DashboardRedirect />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/fo-dashboard"
+          element={
+            <ProtectedRoute requiredRole="FO">
+              <FoDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/rh-dashboard"
+          element={
+            <ProtectedRoute requiredRole="RH">
+              <RhDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/payment-dashboard"
+          element={
+            <ProtectedRoute requiredRole="PAYMENT">
+              <PaymentDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/vendor-dashboard"
+          element={
+            <ProtectedRoute requiredRole="VENDOR">
+              <VendorDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/fo-history"
+          element={
+            <ProtectedRoute requiredRole="FO">
+              <FoHistory />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/fo-cancelled"
+          element={
+            <ProtectedRoute requiredRole="FO">
+              <FoCancelled />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/fo-profile"
+          element={
+            <ProtectedRoute requiredRole="FO">
+              <FoProfile />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/rh-history"
+          element={
+            <ProtectedRoute requiredRole="RH">
+              <RhHistory />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/rh-profile"
+          element={
+            <ProtectedRoute requiredRole="RH">
+              <RhProfile />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/payment-history"
+          element={
+            <ProtectedRoute requiredRole="PAYMENT">
+              <PaymentHistory />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/payment-profile"
+          element={
+            <ProtectedRoute requiredRole="PAYMENT">
+              <PaymentProfile />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/vendor-history"
+          element={
+            <ProtectedRoute requiredRole="VENDOR">
+              <VendorHistory />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/vendor-profile"
+          element={
+            <ProtectedRoute requiredRole="VENDOR">
+              <VendorProfile />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route path="/unauthorized" element={<Navigate to="/login" replace />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+
+      <ProfileCompletionModal isOpen={Boolean(!isAuthRoute && user && !profileLoading && needsProfileCompletion)} />
+    </>
+  );
+}
 
 function App() {
   return (

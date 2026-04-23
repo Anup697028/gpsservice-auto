@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Login | GPS Auto-Install</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Sora:wght@600;700;800&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f26a21",
+                        "background-light": "#f8f6f5",
+                        "background-dark": "#221610",
+                    },
+                    fontFamily: {
+                        "display": ["Sora", "Inter", "sans-serif"],
+                        "body": ["IBM Plex Sans", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'IBM Plex Sans', sans-serif; }
+        h1, h2, h3 { font-family: 'Sora', sans-serif; }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen">
+<div class="flex min-h-screen flex-col lg:flex-row">
+<!-- Left Panel: Visual & Value Proposition -->
+<div class="relative hidden lg:flex lg:w-1/2 flex-col justify-between p-12 overflow-hidden bg-primary/10">
+<div class="absolute inset-0 z-0">
+<div class="absolute inset-0 bg-gradient-to-br from-primary/80 to-background-dark/90 mix-blend-multiply"></div>
+<img alt="Logistics warehouse with organized delivery boxes" class="h-full w-full object-cover" data-alt="Modern logistics warehouse with stacked delivery containers and equipment" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDx_6dpvHwV9e-tLhijG5vjP73xiCcfsDbj02LYy7zMgmK2xl3g4O2XRf4yiXCqSjJizg7J7TM4D3Sc8F6DeOx38u-k32x2XwCgMEhPC1KdKfsqz6_U5FKoSGAfHPCJ96RrRKHYCjx7CR1CE2oGbaoAtGE1UduZ-_z10pvKdkT8IqARRUF7-IK_4j8pJEykY34zxKMFLEzPMfeR1Y62ogtnFTN3YMfT9Bnh7lKtrv1OFr3IW_x98MuKjq-xLBWsonYB5aheBO88dVM"/>
+</div>
+<div class="relative z-10">
+<div class="flex items-center gap-3 text-white">
+<div class="size-10 bg-white rounded-lg flex items-center justify-center shadow-lg">
+<span class="material-symbols-outlined text-primary text-3xl">navigation</span>
+</div>
+<span class="text-xl font-bold tracking-tight">GPS Auto-Install</span>
+</div>
+</div>
+<div class="relative z-10 max-w-lg">
+<h1 class="text-5xl font-extrabold text-white leading-tight mb-6">
+                    Automating the standard for GPS hardware deployment.
+                </h1>
+<p class="text-white/80 text-lg font-medium leading-relaxed">
+                    Streamline fleet installations with real-time tracking, automated verification, and logistics-grade reporting tools.
+                </p>
+</div>
+<div class="relative z-10 flex gap-8">
+<div class="flex flex-col">
+<span class="text-white font-bold text-2xl">45k+</span>
+<span class="text-white/60 text-sm">Units Installed</span>
+</div>
+<div class="flex flex-col">
+<span class="text-white font-bold text-2xl">99.9%</span>
+<span class="text-white/60 text-sm">Uptime SLA</span>
+</div>
+</div>
+</div>
+<!-- Right Panel: Login Form -->
+<div class="flex flex-1 flex-col justify-center px-6 py-12 lg:px-20 xl:px-32 bg-background-light dark:bg-background-dark">
+<div class="mx-auto w-full max-w-md">
+<div class="mb-10 lg:hidden flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-3xl">navigation</span>
+<span class="text-xl font-bold text-slate-900 dark:text-slate-100">GPS Auto-Install</span>
+</div>
+<div class="space-y-2 mb-8">
+<h2 class="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">Welcome Back</h2>
+<p class="text-slate-600 dark:text-slate-400">Log in to your partner account to manage deployments.</p>
+</div>
+<form action="#" class="space-y-6" method="POST">
+<!-- Email Field -->
+<div class="space-y-2">
+<label class="block text-sm font-semibold text-slate-700 dark:text-slate-300" for="email">Work Email Address</label>
+<div class="relative">
+<input class="block w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/50 py-3.5 px-4 text-slate-900 dark:text-slate-100 shadow-sm focus:border-primary focus:ring-primary sm:text-sm placeholder:text-slate-400" id="email" name="email" placeholder="e.g. user@logistics.com" required="" type="email"/>
+</div>
+<p class="text-xs text-slate-500 dark:text-slate-400">Enter the email associated with your service station.</p>
+</div>
+<!-- Password Field -->
+<div class="space-y-2">
+<div class="flex items-center justify-between">
+<label class="block text-sm font-semibold text-slate-700 dark:text-slate-300" for="password">Password</label>
+<a class="text-sm font-semibold text-primary hover:text-primary/80" href="#">Forgot Password?</a>
+</div>
+<div class="relative group">
+<input class="block w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/50 py-3.5 px-4 pr-12 text-slate-900 dark:text-slate-100 shadow-sm focus:border-primary focus:ring-primary sm:text-sm" id="password" name="password" placeholder="••••••••" type="password"/>
+<button class="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" type="button">
+<span class="material-symbols-outlined" data-icon="visibility">visibility</span>
+</button>
+</div>
+</div>
+<!-- Error State Example (Hidden by default, shown for UI demonstration) -->
+<div class="hidden rounded-lg bg-red-50 dark:bg-red-900/20 p-4 border border-red-200 dark:border-red-800">
+<div class="flex">
+<div class="shrink-0">
+<span class="material-symbols-outlined text-red-400">error</span>
+</div>
+<div class="ml-3">
+<p class="text-sm font-medium text-red-800 dark:text-red-200">Invalid credentials. Please check your email and try again.</p>
+</div>
+</div>
+</div>
+<!-- Login Button -->
+<button class="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-4 text-sm font-bold text-white shadow-lg hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary transition-all" type="submit">
+<span>Access Dashboard</span>
+<!-- Loading indicator could be placed here -->
+</button>
+<!-- Success Redirect Hint -->
+<div class="rounded-lg bg-primary/5 p-4 border border-primary/10">
+<div class="flex items-start gap-3">
+<span class="material-symbols-outlined text-primary">info</span>
+<p class="text-xs leading-normal text-slate-600 dark:text-slate-400">
+<span class="font-bold text-slate-900 dark:text-slate-100">Success Redirect:</span> Admins will be routed to the HQ Control Panel, while Technicians are sent directly to the Field Deployment queue.
+                            </p>
+</div>
+</div>
+</form>
+<p class="mt-10 text-center text-sm text-slate-500">
+                    Not a partner yet? 
+                    <a class="font-semibold leading-6 text-primary hover:text-primary/80 underline underline-offset-4" href="#">Request Partner Access</a>
+</p>
+</div>
+<!-- Sticky Footer -->
+<footer class="mt-auto pt-10 border-t border-slate-200 dark:border-slate-800">
+<div class="flex flex-wrap justify-center gap-x-8 gap-y-4 text-xs font-medium text-slate-400 dark:text-slate-500">
+<a class="hover:text-primary" href="#">System Status</a>
+<a class="hover:text-primary" href="#">Privacy Policy</a>
+<a class="hover:text-primary" href="#">Service Terms</a>
+<a class="hover:text-primary" href="#">Support Desk</a>
+<span class="ml-auto">© 2024 GPS Installation Automation</span>
+</div>
+</footer>
+</div>
+</div>
+</body></html>

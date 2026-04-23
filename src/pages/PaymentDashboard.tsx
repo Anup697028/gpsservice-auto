@@ -1,1589 +1,800 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Loader } from '../components/Loader';
+import { Modal } from '../components/Modal';
+import { PaymentConsoleLayout } from '../components/PaymentConsoleLayout';
+import { showToast } from '../components/Toast';
 import { useAuth } from '../context/AuthContext';
 import { requestService } from '../services/requestService';
-import { showToast } from '../components/Toast';
-import { AuditLog } from '../components/AuditLog';
-import { Modal } from '../components/Modal';
-import { Loader } from '../components/Loader';
-import '../styles/dashboard.css';
-import { REQUEST_STATUSES } from '../types/workflow';
-import type { RequestRecord, UserRef } from '../types/workflow';
-import { getUnifiedStatusLabel } from '../utils/statusMapping';
+import type { UserRef } from '../types/workflow';
+import {
+  buildPaymentRowsForRequest,
+  canTakePaymentRowAction,
+  exportPaymentRowsToCsv,
+  formatPaymentServiceCharge,
+  getPaymentRowKey,
+  getPaymentRowStatusClass,
+  getPaymentRowStatusLabel,
+  type PaymentRow,
+} from '../utils/paymentRows';
+import { RequestWithId, formatRequestIdDisplay, sortRequestsNewestFirst } from '../utils/workflowView';
 
-type RequestWithId = RequestRecord & { id?: string; auditLog?: Array<{ action: string; performedBy?: string; timestamp?: string }> };
-
-type PaymentActionFilter = 'ALL' | 'APPROVED' | 'NOT_APPROVED';
-type BulkPaymentAction = 'APPROVE' | 'REJECT';
-type RejectTarget = {
-  request: RequestWithId;
-  vehicleIndex: number | null;
+type AuthShape = {
+  user: { uid: string; email?: string | null } | null;
+  userRole: string | null;
+  userProfile: { name?: string | null; title?: string | null } | null;
+  logout: () => Promise<void>;
+  loading: boolean;
 };
 
-type PaymentServiceRow = {
-  requestId: string;
-  isBulkRequest: boolean;
-  vehicleIndex: number | null;
-  city: string;
-  client: string;
-  date: string;
-  serviceType: string;
-  serviceCost: number | null;
-  action: 'Approved' | 'Not Approved';
-  statusLabel: string;
-  vehicleNumber: string;
-  location: string;
-  availableTime: string;
-  ltpocName: string;
-  ltpocPhone: string;
-  rowPaymentActionTaken: boolean;
-  rowPaymentApproved: boolean;
-  rowPaymentRejected: boolean;
+type PaymentSharedFilters = {
+  searchTerm: string;
+  cityFilter: string;
+  dateFrom: string;
+  dateTo: string;
 };
 
-const SERVICE_COST_BY_TYPE: Record<string, number> = {
-  FleetX: 3000,
-  WheelsEye: 2000,
-};
+const PAYMENT_SHARED_FILTERS_KEY = 'paymentSharedFiltersV1';
 
-const toDateValue = (value: unknown) => {
-  if (!value) {
-    return null;
+const getDefaultPaymentSharedFilters = (): PaymentSharedFilters => ({
+  searchTerm: '',
+  cityFilter: 'all',
+  dateFrom: '',
+  dateTo: '',
+});
+
+const loadPaymentSharedFilters = (): PaymentSharedFilters => {
+  if (typeof window === 'undefined') {
+    return getDefaultPaymentSharedFilters();
   }
 
-  const dateValue = (value as { toDate?: () => Date }).toDate?.() ?? new Date(value as string);
-  return Number.isNaN(dateValue.getTime()) ? null : dateValue;
-};
-
-const extractVehicleNumbersFromHistory = (history: unknown): string[] => {
-  if (!Array.isArray(history)) {
-    return [];
-  }
-
-  const entries = history as Array<Record<string, unknown>>;
-  for (let index = entries.length - 1; index >= 0; index -= 1) {
-    const notes = String(entries[index]?.notes || '');
-    const match = notes.match(/vehicle\(s\):\s*(.+)$/i);
-    if (!match?.[1]) {
-      continue;
+  try {
+    const raw = window.localStorage.getItem(PAYMENT_SHARED_FILTERS_KEY);
+    if (!raw) {
+      return getDefaultPaymentSharedFilters();
     }
 
-    return match[1]
-      .split(',')
-      .map((item) => item.trim())
-      .filter(Boolean);
+    const parsed = JSON.parse(raw) as Partial<PaymentSharedFilters>;
+    return {
+      searchTerm: String(parsed?.searchTerm || ''),
+      cityFilter: String(parsed?.cityFilter || 'all'),
+      dateFrom: String(parsed?.dateFrom || ''),
+      dateTo: String(parsed?.dateTo || ''),
+    };
+  } catch {
+    return getDefaultPaymentSharedFilters();
   }
-
-  return [];
 };
 
-const getPaymentRejectionReason = (vehicle: Record<string, unknown>, request: RequestWithId) => {
-  const fromVehicle = String(vehicle?.paymentRejectionReason || '').trim();
-  if (fromVehicle) {
-    return fromVehicle;
+const savePaymentSharedFilters = (filters: PaymentSharedFilters) => {
+  if (typeof window === 'undefined') {
+    return;
   }
 
-  const fromRequest = String((request as Record<string, unknown>)?.rejectionReason || '').trim();
-  if (fromRequest) {
-    return fromRequest;
+  window.localStorage.setItem(PAYMENT_SHARED_FILTERS_KEY, JSON.stringify(filters));
+};
+
+const matchesPaymentSearch = (row: PaymentRow, searchTerm: string) => {
+  const normalized = String(searchTerm || '').trim().toLowerCase();
+  if (!normalized) {
+    return true;
   }
 
-  if (Array.isArray(request.history)) {
-    for (let index = request.history.length - 1; index >= 0; index -= 1) {
-      const entry = request.history[index] as Record<string, unknown>;
-      const action = String(entry?.action || '').toUpperCase();
-      if (!action.includes('PAYMENT') || !action.includes('REJECT')) {
-        continue;
-      }
+  return [row.requestId, row.clientName, row.city, row.vehicleNumber, row.serviceType]
+    .some((value) => String(value || '').toLowerCase().includes(normalized));
+};
 
-      const notes = String(entry?.notes || '').trim();
-      if (!notes) {
-        continue;
-      }
+const groupRowsForBulkAction = (rows: PaymentRow[]) => {
+  const groups = new Map<string, { request: RequestWithId; vehicleIndexes: number[]; isBulkRequest: boolean }>();
 
-      const reasonMatch = notes.match(/Reason:\s*(.+)$/i);
-      if (reasonMatch?.[1]) {
-        return reasonMatch[1].trim();
-      }
-
-      return notes;
+  rows.forEach((row) => {
+    if (!row.requestId) {
+      return;
     }
-  }
 
-  return '';
-};
-
-const toDateString = (value: unknown) => {
-  const dateValue = toDateValue(value);
-  return dateValue ? dateValue.toISOString().slice(0, 10) : '';
-};
-
-const getVehicleServiceCost = (serviceType?: string | null, fallbackCost?: number | null) => {
-  if (serviceType && SERVICE_COST_BY_TYPE[serviceType]) {
-    return SERVICE_COST_BY_TYPE[serviceType];
-  }
-  return fallbackCost ?? null;
-};
-
-const toBooleanFlag = (value: unknown) => {
-  if (value === true || value === false) {
-    return value;
-  }
-
-  if (typeof value === 'string') {
-    const normalized = value.trim().toLowerCase();
-    if (normalized === 'true') {
-      return true;
+    const existing = groups.get(row.requestId);
+    if (!existing) {
+      groups.set(row.requestId, {
+        request: row.request,
+        vehicleIndexes: Number.isInteger(row.vehicleIndex) ? [Number(row.vehicleIndex)] : [],
+        isBulkRequest: row.isBulkRequest,
+      });
+      return;
     }
-    if (normalized === 'false') {
-      return false;
+
+    if (Number.isInteger(row.vehicleIndex)) {
+      existing.vehicleIndexes.push(Number(row.vehicleIndex));
     }
-  }
+  });
 
-  return false;
+  return Array.from(groups.entries()).map(([requestId, value]) => ({ requestId, ...value }));
 };
 
-const normalizeVehicles = (vehicles: unknown): Array<Record<string, unknown>> => {
-  if (Array.isArray(vehicles)) {
-    return vehicles as Array<Record<string, unknown>>;
-  }
+const formatActionError = (error: unknown, fallbackMessage: string) => {
+  const message =
+    (error && typeof error === 'object' && 'message' in error && String((error as { message?: unknown }).message || '').trim()) ||
+    fallbackMessage;
 
-  if (vehicles && typeof vehicles === 'object') {
-    return Object.keys(vehicles as Record<string, unknown>)
-      .sort((a, b) => Number(a) - Number(b))
-      .map((key) => ((vehicles as Record<string, unknown>)[key] ?? {}) as Record<string, unknown>);
-  }
+  const code =
+    (error && typeof error === 'object' && 'code' in error && String((error as { code?: unknown }).code || '').trim()) ||
+    '';
 
-  return [];
+  return code ? `${message} (${code})` : message;
 };
 
-const normalizeRecordList = (value: unknown): Array<Record<string, unknown>> => {
-  if (Array.isArray(value)) {
-    return value as Array<Record<string, unknown>>;
-  }
+export const PaymentDashboard: React.FC = () => {
+  const navigate = useNavigate();
+  const { user, userRole, userProfile, logout, loading } = useAuth() as AuthShape;
+  const initialFilters = useMemo(() => loadPaymentSharedFilters(), []);
 
-  if (value && typeof value === 'object') {
-    return Object.keys(value as Record<string, unknown>)
-      .sort((a, b) => Number(a) - Number(b))
-      .map((key) => ((value as Record<string, unknown>)[key] ?? {}) as Record<string, unknown>);
-  }
-
-  return [];
-};
-
-const toNumberOrNull = (value: unknown): number | null => {
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    return value;
-  }
-
-  if (typeof value === 'string' && value.trim() !== '') {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : null;
-  }
-
-  return null;
-};
-
-const normalizeServiceType = (value: unknown) => {
-  const raw = String(value || '').trim().toLowerCase().replace(/\s+/g, '');
-  if (raw === 'fleetx') {
-    return 'FleetX';
-  }
-  if (raw === 'wheelseye') {
-    return 'WheelsEye';
-  }
-  return String(value || '');
-};
-
-const resolveServiceType = (vehicle: Record<string, unknown>, request: RequestWithId) => {
-  const requestServiceCost = Number(request.serviceCost || 0);
-  const vehicleServiceCost = Number(vehicle?.serviceCost || 0);
-
-  const inferredFromCost =
-    requestServiceCost === 3000 || vehicleServiceCost === 3000
-      ? 'FleetX'
-      : requestServiceCost === 2000 || vehicleServiceCost === 2000
-        ? 'WheelsEye'
-        : '';
-
-  return (
-    normalizeServiceType(vehicle?.serviceType) ||
-    normalizeServiceType(vehicle?.service_type) ||
-    normalizeServiceType(vehicle?.serviceTypeName) ||
-    normalizeServiceType(vehicle?.vendorType) ||
-    normalizeServiceType(vehicle?.service) ||
-    normalizeServiceType(vehicle?.vendor) ||
-    normalizeServiceType(request.serviceType) ||
-    normalizeServiceType((request as any).service_type) ||
-    normalizeServiceType(request.vendorType) ||
-    normalizeServiceType((request as any).vendor_type) ||
-    inferredFromCost ||
-    ''
-  );
-};
-
-const resolveVehicleNumber = (vehicle: Record<string, unknown>) => {
-  return String(
-    vehicle?.vehicleNumber ||
-      vehicle?.vehicleNo ||
-      vehicle?.registrationNumber ||
-      vehicle?.vehicle_num ||
-      vehicle?.vehicle ||
-      ''
-  ).trim();
-};
-
-const resolveLocation = (vehicle: Record<string, unknown>, request: RequestWithId) => {
-  return String(
-    vehicle?.vehicleAvailabilityLocation ||
-    vehicle?.availabilityLocation ||
-    vehicle?.vehicleLocation ||
-    vehicle?.location ||
-    request.vehicleAvailabilityLocation ||
-    ''
-  ).trim();
-};
-
-const resolveAvailableTime = (vehicle: Record<string, unknown>, request: RequestWithId) => {
-  return String(
-    vehicle?.vehicleAvailableTime ||
-    vehicle?.availableTime ||
-    vehicle?.availabilityTime ||
-    request.vehicleAvailableTime ||
-    ''
-  ).trim();
-};
-
-const resolvePaymentStatusLabel = (
-  requestStatus: RequestWithId['status'],
-  rowPaymentApproved: boolean,
-  rowPaymentRejected: boolean
-) => {
-  if (requestStatus === REQUEST_STATUSES.CANCELLED) {
-    return 'Cancelled';
-  }
-
-  if (rowPaymentRejected) {
-    return 'Payment Rejected';
-  }
-
-  if (rowPaymentApproved) {
-    return 'Payment Approved';
-  }
-
-  return getUnifiedStatusLabel(requestStatus);
-};
-
-export const PaymentDashboard = () => {
-  const { user, userRole } = useAuth();
   const [requests, setRequests] = useState<RequestWithId[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedRequest, setSelectedRequest] = useState<RequestWithId | null>(null);
-  const [showModal, setShowModal] = useState(false);
-  const [showRejectModal, setShowRejectModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [editData, setEditData] = useState<Record<string, unknown>>({});
-  const [searchTerm, setSearchTerm] = useState('');
-  const [rejectionReason, setRejectionReason] = useState('');
-  const [cityFilter, setCityFilter] = useState<string[]>([]);
-  const [fromDate, setFromDate] = useState('');
-  const [toDate, setToDate] = useState('');
-  const [actionFilter, setActionFilter] = useState<PaymentActionFilter>('ALL');
+  const [tableLoading, setTableLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState(initialFilters.searchTerm);
+  const [cityFilter, setCityFilter] = useState(initialFilters.cityFilter);
+  const [dateFrom, setDateFrom] = useState(initialFilters.dateFrom);
+  const [dateTo, setDateTo] = useState(initialFilters.dateTo);
   const [showAdditionalColumns, setShowAdditionalColumns] = useState(false);
-  const [processingRequestIds, setProcessingRequestIds] = useState<Set<string>>(new Set());
-  const [selectedRowKeys, setSelectedRowKeys] = useState<Set<string>>(new Set());
-  const [rejectTarget, setRejectTarget] = useState<RejectTarget | null>(null);
-  const [cityDropdownOpen, setCityDropdownOpen] = useState(false);
-  const [citySearchTerm, setCitySearchTerm] = useState('');
-  const cityDropdownRef = useRef<HTMLDivElement | null>(null);
+  const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
+  const [viewRow, setViewRow] = useState<PaymentRow | null>(null);
+  const [rejectRow, setRejectRow] = useState<PaymentRow | null>(null);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [actioningKeys, setActioningKeys] = useState<string[]>([]);
+  const [bulkActioning, setBulkActioning] = useState(false);
 
   const userRef = useMemo<UserRef | null>(() => {
-    if (!user || !userRole) {
+    if (!user) {
       return null;
     }
 
     return {
       id: user.uid,
-      email: user.email,
-      role: userRole,
+      email: user.email ?? null,
+      name: userProfile?.name ?? null,
+      role: 'PAYMENT',
     };
-  }, [user, userRole]);
+  }, [user, userProfile?.name]);
+
+  const isPaymentRole = String(userRole || '').trim().toUpperCase() === 'PAYMENT';
 
   useEffect(() => {
+    if (!user?.uid || !isPaymentRole) {
+      setTableLoading(false);
+      return () => {};
+    }
+
     const unsubscribe = requestService.subscribeToAllRequests((data) => {
-      setRequests(data as RequestWithId[]);
-      setLoading(false);
+      setRequests(sortRequestsNewestFirst(data as RequestWithId[]));
+      setTableLoading(false);
     });
 
     return unsubscribe;
-  }, []);
+  }, [user?.uid, isPaymentRole]);
 
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (cityDropdownRef.current && !cityDropdownRef.current.contains(event.target as Node)) {
-        setCityDropdownOpen(false);
-      }
-    };
+    savePaymentSharedFilters({ searchTerm, cityFilter, dateFrom, dateTo });
+  }, [searchTerm, cityFilter, dateFrom, dateTo]);
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  const allRows = useMemo(
+    () => requests.flatMap((request) => buildPaymentRowsForRequest(request)).sort((left, right) => right.createdAtMs - left.createdAtMs),
+    [requests]
+  );
 
-  const cityOptions = useMemo(() => {
-    return Array.from(new Set(requests.map((request) => request.city).filter(Boolean))) as string[];
-  }, [requests]);
+  const pendingRows = useMemo(
+    () => allRows.filter((row) => canTakePaymentRowAction(row)),
+    [allRows]
+  );
 
-  const filteredCityOptions = useMemo(() => {
-    const term = citySearchTerm.trim().toLowerCase();
-    if (!term) {
-      return cityOptions;
-    }
+  const filteredRows = useMemo(
+    () =>
+      pendingRows
+        .filter((row) => matchesPaymentSearch(row, searchTerm))
+        .filter((row) => cityFilter === 'all' || row.city === cityFilter)
+        .filter((row) => !dateFrom || (row.createdDateIso && row.createdDateIso >= dateFrom))
+        .filter((row) => !dateTo || (row.createdDateIso && row.createdDateIso <= dateTo)),
+    [pendingRows, searchTerm, cityFilter, dateFrom, dateTo]
+  );
 
-    return cityOptions.filter((city) => city.toLowerCase().includes(term));
-  }, [cityOptions, citySearchTerm]);
+  const cityOptions = useMemo(
+    () => Array.from(new Set(allRows.map((row) => row.city).filter(Boolean))).sort((left, right) => left.localeCompare(right)),
+    [allRows]
+  );
 
-  const cityFilterLabel = useMemo(() => {
-    if (cityFilter.length === 0) {
-      return 'All Cities';
-    }
+  const totalRequests = useMemo(
+    () => Array.from(new Set(allRows.map((row) => row.requestId))).length,
+    [allRows]
+  );
 
-    if (cityFilter.length <= 2) {
-      return cityFilter.join(', ');
-    }
+  const processedRowsCount = useMemo(
+    () => allRows.filter((row) => !canTakePaymentRowAction(row)).length,
+    [allRows]
+  );
 
-    return `${cityFilter.length} cities selected`;
-  }, [cityFilter]);
-
-  const toggleCityFilterSelection = (city: string) => {
-    setCityFilter((prev) => {
-      if (prev.includes(city)) {
-        return prev.filter((item) => item !== city);
-      }
-      return [...prev, city];
-    });
-  };
-
-  const isPaymentApproved = (request: RequestWithId) => {
-    if (request.isBulkRequest) {
-      return request.paymentStatus === 'APPROVED';
-    }
-    return Boolean(request.paymentApproval);
-  };
-
-  const canTakePaymentAction = (request: RequestWithId) => {
-    if (request.isBulkRequest) {
-      return request.status === REQUEST_STATUSES.FO_CREATED && request.paymentStatus !== 'APPROVED';
-    }
-
-    return request.status === REQUEST_STATUSES.PARALLEL_REVIEW && !request.paymentActionTaken;
-  };
-
-  const getRowSelectionKey = (row: PaymentServiceRow) =>
-    row.isBulkRequest
-      ? `B:${row.requestId}:${row.vehicleIndex ?? -1}`
-      : `S:${row.requestId}`;
-
-  const canTakeRowAction = (request: RequestWithId, row: PaymentServiceRow) => {
-    const rowPending =
-      row.rowPaymentActionTaken === false &&
-      row.rowPaymentApproved === false &&
-      row.rowPaymentRejected === false;
-
-    if (!rowPending) {
-      return false;
-    }
-
-    if (request.isBulkRequest) {
-      return request.status === REQUEST_STATUSES.FO_CREATED;
-    }
-
-    return request.status === REQUEST_STATUSES.PARALLEL_REVIEW;
-  };
-
-  const filteredRequests = useMemo(() => {
-    const term = searchTerm.toLowerCase();
-
-    return requests
-      .filter((request) => {
-        const matchesSearch =
-          request.id?.toLowerCase().includes(term) ||
-          request.clientName?.toLowerCase().includes(term) ||
-          request.city?.toLowerCase().includes(term);
-
-        const matchesCity = cityFilter.length > 0 ? cityFilter.includes(String(request.city || '')) : true;
-
-        const requestDate = toDateValue(request.createdAt);
-        const matchesFrom = fromDate ? (requestDate ? requestDate >= new Date(fromDate) : false) : true;
-        const toDateValueObj = toDate ? new Date(toDate) : null;
-        if (toDateValueObj) {
-          toDateValueObj.setHours(23, 59, 59, 999);
-        }
-        const matchesTo = toDateValueObj ? (requestDate ? requestDate <= toDateValueObj : false) : true;
-
-        const approved = isPaymentApproved(request);
-        const matchesAction =
-          actionFilter === 'ALL'
-            ? true
-            : actionFilter === 'APPROVED'
-              ? approved
-              : !approved;
-
-        return Boolean(matchesSearch) && matchesCity && matchesFrom && matchesTo && matchesAction;
-      })
-      .sort((a, b) => {
-        const aTime = toDateValue(a.createdAt)?.getTime() ?? 0;
-        const bTime = toDateValue(b.createdAt)?.getTime() ?? 0;
-        return bTime - aTime;
-      });
-  }, [requests, searchTerm, cityFilter, fromDate, toDate, actionFilter]);
-
-  const exportRows = useMemo<PaymentServiceRow[]>(() => {
-    return filteredRequests.flatMap((request) => {
-      const actionLabel: 'Approved' | 'Not Approved' = isPaymentApproved(request) ? 'Approved' : 'Not Approved';
-      const date = toDateString(request.createdAt);
-      const normalizedVehicles = normalizeVehicles(request.vehicles);
-      const normalizedLtpocDetails = normalizeRecordList(request.ltpocDetails);
-      const normalizedDriverDetails = normalizeRecordList((request as any).driverDetails);
-      const historyVehicleNumbers = extractVehicleNumbersFromHistory(request.history);
-
-      const defaultServiceType =
-        normalizeServiceType(request.serviceType) ||
-        normalizeServiceType((request as any).service_type) ||
-        normalizeServiceType(request.vendorType) ||
-        normalizeServiceType((request as any).vendor_type) ||
-        normalizeServiceType(
-          normalizedVehicles.find((vehicle) => normalizeServiceType(vehicle?.serviceType))?.serviceType
-        ) ||
-        normalizeServiceType(
-          normalizedVehicles.find((vehicle) => normalizeServiceType((vehicle as any)?.service_type))?.service_type
-        ) ||
-        normalizeServiceType(
-          normalizedVehicles.find((vehicle) => normalizeServiceType(vehicle?.vendorType))?.vendorType
-        ) ||
-        '';
-
-      const defaultLocation =
-        String(request.vehicleAvailabilityLocation || '').trim() ||
-        String(
-          normalizedVehicles.find((vehicle) => String(vehicle?.vehicleAvailabilityLocation || '').trim())
-            ?.vehicleAvailabilityLocation || ''
-        ).trim();
-
-      const defaultAvailableTime =
-        String(request.vehicleAvailableTime || '').trim() ||
-        String(
-          normalizedVehicles.find((vehicle) => String(vehicle?.vehicleAvailableTime || '').trim())
-            ?.vehicleAvailableTime || ''
-        ).trim();
-
-      const ltpocByVehicle = new Map(
-        normalizedLtpocDetails.map((item) => [
-          String(item.vehicleNumber ?? ''),
-          item,
-        ])
-      );
-
-      if (request.isBulkRequest && normalizedVehicles.length > 0) {
-        return normalizedVehicles.map((vehicle: any, vehicleIndex: number) => {
-          const vehicleData = vehicle as Record<string, unknown>;
-          const ltpocAtIndex = (normalizedLtpocDetails[vehicleIndex] ?? null) as Record<string, unknown> | null;
-          const driverAtIndex = (normalizedDriverDetails[vehicleIndex] ?? null) as Record<string, unknown> | null;
-          const resolvedVehicleNumber =
-            resolveVehicleNumber(vehicleData) ||
-            String(ltpocAtIndex?.vehicleNumber || '').trim() ||
-            String(driverAtIndex?.vehicleNumber || '').trim() ||
-            String(historyVehicleNumbers[vehicleIndex] || '').trim();
-          const matchedLtpoc = ltpocByVehicle.get(resolvedVehicleNumber) as Record<string, unknown> | undefined;
-          const vehiclePaymentStatus = String(vehicleData?.paymentStatus || '').toUpperCase();
-          const requestPaymentStatus = String((request as any)?.paymentStatus || '').toUpperCase();
-          const hasVehiclePaymentFields =
-            vehicleData?.paymentApproved !== undefined ||
-            vehicleData?.paymentRejected !== undefined ||
-            vehicleData?.paymentActionTaken !== undefined ||
-            vehicleData?.paymentApprovedAt !== undefined ||
-            vehicleData?.paymentRejectedAt !== undefined ||
-            vehicleData?.paymentStatus !== undefined;
-
-          const legacyParentApproved =
-            !hasVehiclePaymentFields &&
-            (requestPaymentStatus === 'APPROVED' || request.status === REQUEST_STATUSES.PAYMENT_APPROVED);
-          const legacyParentRejected =
-            !hasVehiclePaymentFields && requestPaymentStatus === 'REJECTED';
-
-          const rowPaymentApproved =
-            toBooleanFlag(vehicleData?.paymentApproved) ||
-            Boolean(vehicleData?.paymentApprovedAt) ||
-            vehiclePaymentStatus === 'APPROVED' ||
-            legacyParentApproved;
-          const rowPaymentRejected =
-            toBooleanFlag(vehicleData?.paymentRejected) ||
-            Boolean(vehicleData?.paymentRejectedAt) ||
-            vehiclePaymentStatus === 'REJECTED' ||
-            legacyParentRejected;
-          const rowPaymentActionTaken =
-            toBooleanFlag(vehicleData?.paymentActionTaken) ||
-            vehiclePaymentStatus === 'APPROVED' ||
-            vehiclePaymentStatus === 'REJECTED' ||
-            rowPaymentApproved ||
-            rowPaymentRejected;
-          const statusLabel = resolvePaymentStatusLabel(
-            request.status,
-            rowPaymentApproved,
-            rowPaymentRejected
-          );
-          const resolvedServiceType = resolveServiceType(vehicleData, request) || defaultServiceType || 'FleetX';
-          const vehicleServiceCost =
-            toNumberOrNull(vehicleData?.serviceCost) ||
-            toNumberOrNull((vehicleData as any)?.service_cost) ||
-            toNumberOrNull((vehicleData as any)?.cost);
-          const resolvedLocation =
-            resolveLocation(vehicleData, request) ||
-            defaultLocation ||
-            String((ltpocAtIndex as any)?.vehicleAvailabilityLocation || '') ||
-            String((driverAtIndex as any)?.vehicleAvailabilityLocation || '');
-          const resolvedAvailableTime =
-            resolveAvailableTime(vehicleData, request) ||
-            defaultAvailableTime ||
-            String((ltpocAtIndex as any)?.vehicleAvailableTime || '') ||
-            String((driverAtIndex as any)?.vehicleAvailableTime || '');
-
-          return {
-          requestId: request.id || '',
-          isBulkRequest: Boolean(request.isBulkRequest),
-          vehicleIndex,
-          city: request.city || '',
-          client: request.clientName || '',
-          date,
-          serviceType: resolvedServiceType || 'FleetX',
-          serviceCost: getVehicleServiceCost(
-            resolvedServiceType,
-            vehicleServiceCost ??
-              toNumberOrNull(request.serviceCost) ??
-              toNumberOrNull((request as any).service_cost) ??
-              toNumberOrNull((request as any).cost)
-          ),
-          action: actionLabel,
-          statusLabel,
-          vehicleNumber: resolvedVehicleNumber || `Vehicle ${vehicleIndex + 1}`,
-          location: resolvedLocation,
-          availableTime: resolvedAvailableTime,
-          ltpocName: String(
-            vehicleData?.ltpocName ||
-            vehicleData?.driverName ||
-            driverAtIndex?.driverName ||
-            matchedLtpoc?.ltpocName ||
-            ''
-          ),
-          ltpocPhone: String(
-            vehicleData?.ltpocPhone ||
-            vehicleData?.driverPhone ||
-            driverAtIndex?.driverNumber ||
-            matchedLtpoc?.ltpocPhone ||
-            ''
-          ),
-          rowPaymentActionTaken,
-          rowPaymentApproved,
-          rowPaymentRejected,
-        };
-      });
-      }
-
-      const firstVehicle = normalizedVehicles[0] as any;
-      const firstLtpoc = normalizedLtpocDetails[0];
-
-      const singlePaymentApproved =
-        toBooleanFlag((request as any).paymentApproved) ||
-        toBooleanFlag(request.paymentApproval) ||
-        Boolean((request as any).paymentApprovedAt);
-      const singlePaymentRejected =
-        toBooleanFlag((request as any).paymentRejected) ||
-        Boolean((request as any).paymentRejectedAt);
-      const singlePaymentActionTaken =
-        toBooleanFlag(request.paymentActionTaken) ||
-        singlePaymentApproved ||
-        singlePaymentRejected;
-      const statusLabel = resolvePaymentStatusLabel(
-        request.status,
-        singlePaymentApproved,
-        singlePaymentRejected
-      );
-
-      return [
-        {
-          requestId: request.id || '',
-          isBulkRequest: Boolean(request.isBulkRequest),
-          vehicleIndex: 0,
-          city: request.city || '',
-          client: request.clientName || '',
-          date,
-          serviceType: request.serviceType || '',
-          serviceCost: getVehicleServiceCost(request.serviceType, request.serviceCost),
-          action: actionLabel,
-          statusLabel,
-          vehicleNumber: firstVehicle?.vehicleNumber || '',
-          location: request.vehicleAvailabilityLocation || '',
-          availableTime: request.vehicleAvailableTime || '',
-          ltpocName: String(firstLtpoc?.ltpocName || ''),
-          ltpocPhone: String(firstLtpoc?.ltpocPhone || ''),
-          rowPaymentActionTaken: singlePaymentActionTaken,
-          rowPaymentApproved: singlePaymentApproved,
-          rowPaymentRejected: singlePaymentRejected,
-        },
-      ];
-    });
-  }, [filteredRequests]);
+  const filteredRowKeys = useMemo(
+    () => filteredRows.map((row) => getPaymentRowKey(row)),
+    [filteredRows]
+  );
 
   useEffect(() => {
-    setSelectedRowKeys((prev) => {
-      const validKeys = new Set(
-        exportRows
-          .filter((row) => {
-            const request = filteredRequests.find((item) => item.id === row.requestId);
-            return request ? canTakeRowAction(request, row) : false;
-          })
-          .map((row) => getRowSelectionKey(row))
-      );
+    setSelectedRowKeys((previous) => previous.filter((key) => filteredRowKeys.includes(key)));
+  }, [filteredRowKeys]);
 
-      const next = new Set<string>();
-      prev.forEach((key) => {
-        if (validKeys.has(key)) {
-          next.add(key);
-        }
-      });
-      return next;
-    });
-  }, [exportRows, filteredRequests]);
+  const allFilteredSelected = filteredRowKeys.length > 0 && filteredRowKeys.every((key) => selectedRowKeys.includes(key));
 
-  const approveRequest = async (request: RequestWithId) => {
-    if (!request?.id || !userRef) {
+  const detailsRows = useMemo(
+    () => (viewRow ? allRows.filter((row) => row.requestId === viewRow.requestId) : []),
+    [allRows, viewRow]
+  );
+
+  const runApproveRow = async (row: PaymentRow) => {
+    if (!userRef) {
       return;
     }
 
-    if (processingRequestIds.has(request.id)) {
+    if (row.isBulkRequest && Number.isInteger(row.vehicleIndex)) {
+      await requestService.updateBulkPaymentVehicles(row.requestId, [Number(row.vehicleIndex)], 'APPROVE', userRef, undefined, row.request);
       return;
     }
 
-    setProcessingRequestIds((prev) => new Set(prev).add(request.id as string));
+    await requestService.approveRequest(row.requestId, userRef, 'PAYMENT');
+  };
 
-    const isBulk = request.isBulkRequest;
-
-    if (isBulk) {
-      if (request.status !== REQUEST_STATUSES.FO_CREATED) {
-        showToast(
-          `Cannot approve: Bulk request is in ${request.status} status. Payment approval only allowed at FO_CREATED stage.`,
-          'error'
-        );
-        setProcessingRequestIds((prev) => {
-          const next = new Set(prev);
-          next.delete(request.id as string);
-          return next;
-        });
-        return;
-      }
-
-      try {
-        await requestService.approveBulkPayment(request.id as string, userRef);
-
-        if (request.rhStatus === 'APPROVED') {
-          showToast(
-            `✓ Payment Approved! Both teams approved - Bulk request (${request.vehicleCount} vehicles) ready for vendor`,
-            'success'
-          );
-        } else {
-          showToast('✓ Payment Approved! Waiting for RH team before sending to vendor...', 'success');
-        }
-        setShowModal(false);
-      } catch (error) {
-        showToast('Failed to approve bulk request: ' + (error as Error).message, 'error');
-      } finally {
-        setProcessingRequestIds((prev) => {
-          const next = new Set(prev);
-          next.delete(request.id as string);
-          return next;
-        });
-      }
+  const runRejectRow = async (row: PaymentRow, reason: string) => {
+    if (!userRef) {
       return;
     }
 
-    if (request.paymentActionTaken) {
-      showToast('Payment action already completed for this request', 'info');
-      setProcessingRequestIds((prev) => {
-        const next = new Set(prev);
-        next.delete(request.id as string);
-        return next;
-      });
+    if (row.isBulkRequest && Number.isInteger(row.vehicleIndex)) {
+      await requestService.updateBulkPaymentVehicles(row.requestId, [Number(row.vehicleIndex)], 'REJECT', userRef, reason, row.request);
       return;
     }
 
+    await requestService.rejectRequest(row.requestId, userRef, 'PAYMENT', reason);
+  };
+
+  const handleApproveRow = async (row: PaymentRow) => {
+    const rowKey = getPaymentRowKey(row);
+    setActioningKeys((current) => (current.includes(rowKey) ? current : [...current, rowKey]));
     try {
-      await requestService.approveRequest(request.id as string, userRef, 'PAYMENT');
-      showToast('Request approved! Moved to Vendor team.', 'success');
-      setShowModal(false);
+      await runApproveRow(row);
+      showToast(`Payment approved for ${formatRequestIdDisplay(row.requestId)}.`, 'success');
+      setViewRow((current) => (current && getPaymentRowKey(current) === rowKey ? null : current));
     } catch (error) {
-      showToast('Failed to approve request: ' + (error as Error).message, 'error');
-    } finally {
-      setProcessingRequestIds((prev) => {
-        const next = new Set(prev);
-        next.delete(request.id as string);
-        return next;
+      console.error('Payment approve failed', {
+        requestId: row.requestId,
+        rowKey,
+        isBulkRequest: row.isBulkRequest,
+        vehicleIndex: row.vehicleIndex,
+        userId: userRef?.id,
+        userRole: userRef?.role,
+        error,
       });
+      showToast(formatActionError(error, 'Failed to approve payment row.'), 'error');
+    } finally {
+      setActioningKeys((current) => current.filter((key) => key !== rowKey));
     }
   };
 
-  const handleApprove = async () => {
-    if (!selectedRequest) {
-      return;
-    }
-    await approveRequest(selectedRequest);
-  };
-
-  const rejectRequest = async (request: RequestWithId, reason: string) => {
-    if (!request?.id || !userRef || !reason.trim()) {
-      showToast('Rejection reason is required', 'error');
+  const handleRejectRow = async () => {
+    if (!rejectRow) {
       return;
     }
 
-    if (processingRequestIds.has(request.id)) {
+    const reason = rejectionReason.trim();
+    if (!reason) {
+      showToast('Rejection reason is required.', 'error');
       return;
     }
 
-    setProcessingRequestIds((prev) => new Set(prev).add(request.id as string));
-
-    const isBulk = request.isBulkRequest;
-
+    const rowKey = getPaymentRowKey(rejectRow);
+    setActioningKeys((current) => (current.includes(rowKey) ? current : [...current, rowKey]));
     try {
-      if (isBulk) {
-        await requestService.rejectBulkPayment(request.id as string, reason, userRef);
-      } else {
-        await requestService.rejectRequest(request.id as string, userRef, 'PAYMENT', reason);
-      }
-      showToast('Request rejected!', 'success');
-      setShowRejectModal(false);
-      setShowModal(false);
+      await runRejectRow(rejectRow, reason);
+      showToast(`Payment rejected for ${formatRequestIdDisplay(rejectRow.requestId)}.`, 'success');
+      setRejectRow(null);
       setRejectionReason('');
     } catch (error) {
-      showToast('Failed to reject request: ' + (error as Error).message, 'error');
-    } finally {
-      setProcessingRequestIds((prev) => {
-        const next = new Set(prev);
-        next.delete(request.id as string);
-        return next;
+      console.error('Payment reject failed', {
+        requestId: rejectRow.requestId,
+        rowKey,
+        isBulkRequest: rejectRow.isBulkRequest,
+        vehicleIndex: rejectRow.vehicleIndex,
+        userId: userRef?.id,
+        userRole: userRef?.role,
+        error,
       });
+      showToast(formatActionError(error, 'Failed to reject payment row.'), 'error');
+    } finally {
+      setActioningKeys((current) => current.filter((key) => key !== rowKey));
     }
   };
 
-  const handleReject = async () => {
-    if (rejectTarget) {
-      const reason = rejectionReason.trim();
-      if (!reason) {
-        showToast('Rejection reason is required', 'error');
-        return;
-      }
-
-      const { request, vehicleIndex } = rejectTarget;
-      if (request.isBulkRequest && vehicleIndex !== null) {
-        await handleBulkRowAction(request, vehicleIndex, 'REJECT', reason);
-      } else {
-        await executeSingleRowReject(request, reason);
-      }
-
-      setShowRejectModal(false);
-      setRejectTarget(null);
-      setRejectionReason('');
+  const handleApproveMany = async (rows: PaymentRow[], successLabel: string) => {
+    if (!userRef || rows.length === 0) {
+      showToast('No payment rows selected.', 'info');
       return;
     }
 
-    if (!selectedRequest) {
-      return;
-    }
-    await rejectRequest(selectedRequest, rejectionReason);
-  };
-
-  const handleBulkRowAction = async (
-    request: RequestWithId,
-    vehicleIndex: number,
-    action: BulkPaymentAction,
-    rejectionReasonValue?: string
-  ) => {
-    if (!request?.id || !userRef) {
-      return;
-    }
-
-    if (userRef.role !== 'PAYMENT') {
-      showToast('Only PAYMENT role can perform this action.', 'error');
-      return;
-    }
-
-    if (!request.isBulkRequest) {
-      showToast('This action is only available for bulk requests.', 'error');
-      return;
-    }
-
-    if (request.status !== REQUEST_STATUSES.FO_CREATED) {
-      showToast('Bulk payment action is only allowed when status is FO_CREATED.', 'error');
-      return;
-    }
-
-    if (processingRequestIds.has(request.id)) {
-      return;
-    }
-
-    const actionLabel = action === 'APPROVE' ? 'approve' : 'reject';
-    const reasonText = action === 'REJECT' ? (rejectionReasonValue || '').trim() : '';
-    if (action === 'REJECT' && !reasonText) {
-      showToast('Rejection reason is required', 'error');
-      return;
-    }
-
-    const confirmed = window.confirm(
-      action === 'REJECT'
-        ? `Are you sure you want to reject this bulk service row?`
-        : `Are you sure you want to approve this bulk service row?`
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
-    setProcessingRequestIds((prev) => new Set(prev).add(request.id as string));
-
+    const grouped = groupRowsForBulkAction(rows);
+    setBulkActioning(true);
     try {
-      await requestService.updateBulkPaymentVehicles(
-        request.id,
-        [vehicleIndex],
-        action,
-        userRef,
-        reasonText
+      // Process all groups in parallel — each request is independent. Using
+      // allSettled so one failure does not block the remaining approvals.
+      const results = await Promise.allSettled(
+        grouped.map((group) => {
+          if (group.isBulkRequest) {
+            return requestService.updateBulkPaymentVehicles(
+              group.requestId,
+              Array.from(new Set(group.vehicleIndexes)),
+              'APPROVE',
+              userRef,
+              undefined,
+              group.request,
+            );
+          }
+          return requestService.approveRequest(group.requestId, userRef, 'PAYMENT');
+        }),
       );
 
-      showToast(
-        `${action === 'APPROVE' ? 'Approved' : 'Rejected'} bulk service row successfully.`,
-        'success'
+      const succeeded = results.filter((r) => r.status === 'fulfilled').length;
+      const rejected = results.filter(
+        (r): r is PromiseRejectedResult => r.status === 'rejected',
       );
-      setSelectedRowKeys((prev) => {
-        const next = new Set(prev);
-        next.delete(`B:${request.id as string}:${vehicleIndex}`);
-        return next;
-      });
-    } catch (error) {
-      showToast(`Failed to ${actionLabel} bulk service row: ${(error as Error).message}`, 'error');
-    } finally {
-      setProcessingRequestIds((prev) => {
-        const next = new Set(prev);
-        next.delete(request.id as string);
-        return next;
-      });
-    }
-  };
 
-  const openRowRejectModal = (request: RequestWithId, vehicleIndex: number | null) => {
-    setSelectedRequest(request);
-    setRejectTarget({ request, vehicleIndex });
-    setRejectionReason('');
-    setShowRejectModal(true);
-  };
-
-  const executeSingleRowReject = async (request: RequestWithId, reason: string) => {
-    if (!request?.id || !userRef) {
-      return;
-    }
-
-    if (processingRequestIds.has(request.id)) {
-      return;
-    }
-
-    if (request.status !== REQUEST_STATUSES.PARALLEL_REVIEW) {
-      showToast(`Cannot reject: request is in ${request.status} status.`, 'info');
-      return;
-    }
-
-    const confirmed = window.confirm('Reject this request?');
-    if (!confirmed) {
-      return;
-    }
-
-    setProcessingRequestIds((prev) => new Set(prev).add(request.id as string));
-    try {
-      await requestService.rejectRequest(request.id as string, userRef, 'PAYMENT', reason.trim());
-      showToast('Request rejected!', 'success');
-      setSelectedRowKeys((prev) => {
-        const next = new Set(prev);
-        next.delete(`S:${request.id as string}`);
-        return next;
-      });
-    } catch (error) {
-      showToast('Failed to reject request: ' + (error as Error).message, 'error');
-    } finally {
-      setProcessingRequestIds((prev) => {
-        const next = new Set(prev);
-        next.delete(request.id as string);
-        return next;
-      });
-    }
-  };
-
-  const handleSingleRowApprove = async (request: RequestWithId) => {
-    if (!request?.id || !userRef) {
-      return;
-    }
-
-    if (processingRequestIds.has(request.id)) {
-      return;
-    }
-
-    if (request.status !== REQUEST_STATUSES.PARALLEL_REVIEW) {
-      showToast(`Cannot approve: request is in ${request.status} status.`, 'info');
-      return;
-    }
-
-    const ok = window.confirm('Approve this request?');
-    if (!ok) {
-      return;
-    }
-
-    setProcessingRequestIds((prev) => new Set(prev).add(request.id as string));
-    try {
-      await requestService.approveRequest(request.id as string, userRef, 'PAYMENT');
-      showToast('Request approved! Moved to Vendor team.', 'success');
-      setSelectedRowKeys((prev) => {
-        const next = new Set(prev);
-        next.delete(`S:${request.id as string}`);
-        return next;
-      });
-    } catch (error) {
-      showToast('Failed to approve request: ' + (error as Error).message, 'error');
-    } finally {
-      setProcessingRequestIds((prev) => {
-        const next = new Set(prev);
-        next.delete(request.id as string);
-        return next;
-      });
-    }
-  };
-
-  const handleApproveAllSelected = async () => {
-    if (!userRef || userRef.role !== 'PAYMENT') {
-      showToast('Only PAYMENT role can perform this action.', 'error');
-      return;
-    }
-
-    const selectedRows = exportRows.filter((row) => selectedRowKeys.has(getRowSelectionKey(row)));
-    if (selectedRows.length === 0) {
-      return;
-    }
-
-    const confirmed = window.confirm(`Approve all selected rows (${selectedRows.length})?`);
-    if (!confirmed) {
-      return;
-    }
-
-    const bulkSelections = new Map<string, number[]>();
-    const singleRequestIds = new Set<string>();
-    const allProcessingIds = new Set<string>();
-
-    selectedRows.forEach((row) => {
-      const request = filteredRequests.find((item) => item.id === row.requestId);
-      if (!request || !canTakeRowAction(request, row) || !request.id) {
-        return;
-      }
-
-      allProcessingIds.add(request.id);
-      if (row.isBulkRequest && row.vehicleIndex !== null) {
-        const existing = bulkSelections.get(request.id) ?? [];
-        existing.push(row.vehicleIndex);
-        bulkSelections.set(request.id, existing);
-      } else {
-        singleRequestIds.add(request.id);
-      }
-    });
-
-    if (allProcessingIds.size === 0) {
-      return;
-    }
-
-    setProcessingRequestIds((prev) => {
-      const next = new Set(prev);
-      allProcessingIds.forEach((id) => next.add(id));
-      return next;
-    });
-
-    try {
-      let approvedCount = 0;
-      const failedItems: string[] = [];
-
-      for (const [requestId, indexes] of bulkSelections.entries()) {
-        try {
-          await requestService.updateBulkPaymentVehicles(requestId, indexes, 'APPROVE', userRef);
-          approvedCount += indexes.length;
-        } catch (error) {
-          failedItems.push(
-            `Bulk ${requestId.substring(0, 8)}... (${indexes.length} row${indexes.length > 1 ? 's' : ''}): ${(error as Error).message}`
-          );
-        }
-      }
-
-      for (const requestId of singleRequestIds.values()) {
-        try {
-          await requestService.approveRequest(requestId, userRef, 'PAYMENT');
-          approvedCount += 1;
-        } catch (error) {
-          failedItems.push(`Single ${requestId.substring(0, 8)}...: ${(error as Error).message}`);
-        }
-      }
-
-      if (approvedCount > 0) {
-        showToast(`Approved ${approvedCount} selected row(s).`, 'success');
-      }
-
-      if (failedItems.length > 0) {
-        const preview = failedItems.slice(0, 2).join(' | ');
+      if (rejected.length === 0) {
+        showToast(`${successLabel}: ${rows.length} row(s) approved.`, 'success');
+      } else if (succeeded > 0) {
         showToast(
-          `Failed ${failedItems.length} selected item(s). ${preview}`,
-          'error'
+          `${succeeded} of ${grouped.length} approved. ${rejected.length} failed — check console for details.`,
+          'error',
         );
+      } else {
+        showToast(formatActionError(rejected[0]?.reason, 'Failed to approve selected rows.'), 'error');
       }
 
-      if (failedItems.length === 0) {
-        setSelectedRowKeys(new Set());
-      } else {
-        setSelectedRowKeys((prev) => {
-          const next = new Set(prev);
-          selectedRows.forEach((row) => {
-            const key = getRowSelectionKey(row);
-            const belongsToFailedBulk = row.isBulkRequest && row.vehicleIndex !== null && failedItems.some((item) => item.includes(`Bulk ${row.requestId.substring(0, 8)}...`));
-            const belongsToFailedSingle = !row.isBulkRequest && failedItems.some((item) => item.includes(`Single ${row.requestId.substring(0, 8)}...`));
-            if (!belongsToFailedBulk && !belongsToFailedSingle) {
-              next.delete(key);
-            }
-          });
-          return next;
+      if (rejected.length > 0) {
+        console.error('Payment bulk approve partial/full failure', {
+          successLabel,
+          total: grouped.length,
+          succeeded,
+          errors: rejected.map((r) => r.reason),
         });
       }
+
+      setSelectedRowKeys([]);
     } catch (error) {
-      showToast('Failed to approve selected rows: ' + (error as Error).message, 'error');
+      console.error('Payment bulk approve unexpected error', { error });
+      showToast(formatActionError(error, 'Failed to approve selected rows.'), 'error');
     } finally {
-      setProcessingRequestIds((prev) => {
-        const next = new Set(prev);
-        allProcessingIds.forEach((id) => next.delete(id));
-        return next;
-      });
+      setBulkActioning(false);
     }
   };
 
-  const handleEditAndApprove = async () => {
-    if (!selectedRequest || !userRef) {
-      return;
-    }
-
-    try {
-      await requestService.editAndApprove(selectedRequest.id as string, editData, userRef, 'PAYMENT');
-      showToast('Request updated and approved!', 'success');
-      setShowEditModal(false);
-      setShowModal(false);
-      setEditData({});
-    } catch (error) {
-      showToast('Failed to update request', 'error');
-    }
-  };
-
-  const downloadCsv = () => {
-    const escapeCSVCell = (value: unknown) => `"${String(value ?? '').replace(/"/g, '""')}"`;
-
-    // Sort by date descending (newest first)
-    const sortedRows = [...exportRows].sort((a, b) => {
-      const dateA = new Date(a.date || '').getTime();
-      const dateB = new Date(b.date || '').getTime();
-      return dateB - dateA; // Descending order
-    });
-
-    // Build rows with only non-empty fields
-    const headers = [
-      'City',
-      'Client',
-      'Date',
-      'Service Type',
-      'Service Cost',
-      'Action',
-      'Request ID',
-      'Status',
-      'Vehicle Number',
-      'Vehicle Availability Location',
-      'Vehicle Available Time',
-      'LTPOC Name',
-      'LTPOC Phone',
-    ];
-
-    const rows = sortedRows.map((row) => [
-      row.city || '',
-      row.client || '',
-      row.date || '',
-      row.serviceType || (row.isBulkRequest ? 'Per-vehicle' : ''),
-      row.serviceCost ?? '',
-      row.action || '',
-      row.requestId || '',
-      row.statusLabel || '',
-      row.vehicleNumber || '',
-      row.location || '',
-      row.availableTime || '',
-      row.ltpocName || '',
-      row.ltpocPhone || '',
-    ]);
-
-    // Filter out rows where all cells are empty
-    const nonEmptyRows = rows.filter((row) => row.some((cell) => cell !== ''));
-
-    const csvContent = [
-      headers.map(escapeCSVCell).join(','),
-      ...nonEmptyRows.map((row) => row.map(escapeCSVCell).join(',')),
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    const fromPart = fromDate || 'all';
-    const toPart = toDate || 'all';
-    link.setAttribute('href', url);
-    link.setAttribute('download', `payment_filtered_${fromPart}_to_${toPart}_${new Date().toISOString().slice(0, 10)}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
-
-  if (loading || !userRef) {
+  if (loading || tableLoading || !userRef || !isPaymentRole) {
     return <Loader />;
   }
 
+  const displayName = String(userProfile?.name || 'Payment User');
+  const displayTitle = String(userProfile?.title || 'Controller');
+
   return (
-    <div className="dashboard-container">
-      <div className="dashboard-header">
-        <h1>Payment Team Dashboard</h1>
-        <p>Welcome, {user?.email}</p>
+    <PaymentConsoleLayout
+      activePage="dashboard"
+      userName={displayName}
+      userTitle={displayTitle}
+      onLogout={async () => {
+        await logout();
+        navigate('/login');
+      }}
+      topTitle="Payment Team Console"
+      showTopRightLogout={false}
+      showSidebarIdentity={false}
+    >
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <p className="text-sm font-medium uppercase text-slate-500">Total Requests</p>
+          <p className="mt-1 text-3xl font-black text-slate-900">{totalRequests}</p>
+        </div>
+        <div className="rounded-xl border border-slate-200 border-l-4 border-l-primary bg-white p-6 shadow-sm">
+          <p className="text-sm font-medium uppercase text-slate-500">Pending Requests</p>
+          <p className="mt-1 text-4xl font-black text-primary">{pendingRows.length}</p>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <p className="text-sm font-medium uppercase text-slate-500">Processed Requests</p>
+          <p className="mt-1 text-3xl font-black text-slate-900">{processedRowsCount}</p>
+        </div>
       </div>
 
-      <div className="dashboard-controls" style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'end' }}>
-        <div className="search-box" style={{ margin: 0 }}>
-          <input
-            type="text"
-            placeholder="Search by ID, client, or city..."
-            value={searchTerm}
-            onChange={(event) => setSearchTerm(event.target.value)}
-          />
-        </div>
-
-        <div ref={cityDropdownRef} className={`city-multi-filter ${cityDropdownOpen ? 'open' : ''}`}>
-          <button
-            type="button"
-            className="btn btn-secondary city-multi-trigger"
-            onClick={() => setCityDropdownOpen((prev) => !prev)}
-            title={cityFilter.length > 0 ? cityFilter.join(', ') : 'All Cities'}
-            style={{ minWidth: 420, maxWidth: 560 }}
-          >
-            {cityFilterLabel}
-          </button>
-          {cityDropdownOpen && (
-            <div className="city-multi-menu">
-              <div className="city-multi-header">
-                <input
-                  type="text"
-                  className="city-multi-search"
-                  placeholder="Type city..."
-                  value={citySearchTerm}
-                  onChange={(event) => setCitySearchTerm(event.target.value)}
-                />
-                <button
-                  type="button"
-                  className="btn btn-primary btn-sm city-multi-done"
-                  onClick={() => setCityDropdownOpen(false)}
-                >
-                  Done
-                </button>
-              </div>
-
-              <div className="city-multi-options">
-                {filteredCityOptions.map((city) => (
-                  <label key={city} className="city-multi-option">
-                    <input
-                      type="checkbox"
-                      checked={cityFilter.includes(city)}
-                      onChange={() => toggleCityFilterSelection(city)}
-                    />
-                    <span>{city}</span>
-                  </label>
-                ))}
-
-                {filteredCityOptions.length === 0 && (
-                  <div className="city-multi-empty">No city found</div>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div>
-          <label>From</label>
-          <input type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} />
-        </div>
-
-        <div>
-          <label>To</label>
-          <input type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} />
-        </div>
-
-        <select value={actionFilter} onChange={(event) => setActionFilter(event.target.value as PaymentActionFilter)}>
-          <option value="ALL">All Actions</option>
-          <option value="APPROVED">Approved</option>
-          <option value="NOT_APPROVED">Not Approved</option>
-        </select>
-
-        <button className="btn btn-secondary" onClick={() => {
-          setCityFilter([]);
-          setCitySearchTerm('');
-          setFromDate('');
-          setToDate('');
-          setActionFilter('ALL');
-        }}>
-          Clear Filters
-        </button>
-
-        <button className="btn btn-secondary" onClick={() => setShowAdditionalColumns((prev) => !prev)}>
-          {showAdditionalColumns ? 'Hide Additional Columns' : 'Show Additional Columns'}
-        </button>
-
-        <button className="btn btn-primary" onClick={downloadCsv} disabled={exportRows.length === 0}>
-          Download CSV
-        </button>
-      </div>
-
-      <div style={{ marginTop: '1rem' }}>
-        <strong>Total Requests in History: {requests.length}</strong>
-        <span style={{ margin: '0 8px' }}>•</span>
-        <strong>Filtered Requests: {filteredRequests.length}</strong>
-        <span style={{ margin: '0 8px' }}>•</span>
-        <strong>Total Service Rows: {exportRows.length}</strong>
-      </div>
-
-      <div className="dashboard-content">
-        {exportRows.length === 0 ? (
-          <p className="text-muted">No records found for selected filters</p>
-        ) : (
-          <>
-            {selectedRowKeys.size > 0 && (
-              <div style={{ marginBottom: '10px' }}>
-                <button className="btn btn-success" onClick={handleApproveAllSelected}>
-                  Approve All ({selectedRowKeys.size})
-                </button>
-              </div>
-            )}
-
-            <div className="requests-table-wrapper">
-              <table className="requests-table">
-              <thead>
-                <tr>
-                  <th>City</th>
-                  <th>Client</th>
-                  <th>Date</th>
-                  <th>Service Type</th>
-                  <th>Service Cost</th>
-                  <th>Vehicle Number</th>
-                  <th>Action</th>
-                  {showAdditionalColumns && (
-                    <>
-                      <th>Request ID</th>
-                      <th>Status</th>
-                      <th>Location</th>
-                      <th>Available Time</th>
-                      <th>LTPOC Name</th>
-                      <th>LTPOC Phone</th>
-                    </>
-                  )}
-                  <th>Details</th>
-                </tr>
-              </thead>
-              <tbody>
-                {exportRows.map((row, index) => (
-                  <tr key={`${getRowSelectionKey(row)}:${index}`}>
-                    <td>{row.city ? `${row.city}${row.isBulkRequest ? ' (Bulk)' : ''}` : 'N/A'}</td>
-                    <td>{row.client || 'N/A'}</td>
-                    <td>{row.date || 'N/A'}</td>
-                    <td>{row.serviceType || (row.isBulkRequest ? 'Per-vehicle' : 'N/A')}</td>
-                    <td>
-                      {row.serviceCost !== null && row.serviceCost !== undefined
-                        ? `₹${row.serviceCost}`
-                        : row.isBulkRequest
-                          ? '₹3000'
-                          : 'N/A'}
-                    </td>
-                    <td>{row.vehicleNumber || 'N/A'}</td>
-                    <td>
-                      {(() => {
-                        const request = filteredRequests.find((item) => item.id === row.requestId);
-                        if (!request) {
-                          return <span className="text-muted">N/A</span>;
-                        }
-
-                        const isProcessing = processingRequestIds.has(request.id as string);
-                        const canTakeAction = canTakeRowAction(request, row);
-                        const rowKey = getRowSelectionKey(row);
-                        const isRowSelected = selectedRowKeys.has(rowKey);
-
-                        if (row.rowPaymentApproved) {
-                          return <span className="status-badge status-completed">APPROVED</span>;
-                        }
-
-                        if (row.rowPaymentRejected) {
-                          return <span className="status-badge status-rejected">REJECTED</span>;
-                        }
-
-                        if (canTakeAction && row.rowPaymentActionTaken === false) {
-                          const canShowCheckbox = row.rowPaymentActionTaken === false;
-                          return (
-                            <div className="action-buttons" style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                              {canShowCheckbox ? (
-                                <input
-                                  type="checkbox"
-                                  checked={isRowSelected}
-                                  onChange={(event) => {
-                                    const checked = event.target.checked;
-                                    setSelectedRowKeys((prev) => {
-                                      const next = new Set(prev);
-                                      if (checked) {
-                                        next.add(rowKey);
-                                      } else {
-                                        next.delete(rowKey);
-                                      }
-                                      return next;
-                                    });
-                                  }}
-                                  disabled={isProcessing}
-                                />
-                              ) : null}
-
-                              <button
-                                className="btn btn-sm btn-success"
-                                disabled={isProcessing || userRef.role !== 'PAYMENT'}
-                                onClick={async () => {
-                                  if (isProcessing) {
-                                    return;
-                                  }
-
-                                  if (request.isBulkRequest && row.vehicleIndex !== null) {
-                                    await handleBulkRowAction(request, row.vehicleIndex, 'APPROVE');
-                                    return;
-                                  }
-
-                                  await handleSingleRowApprove(request);
-                                }}
-                              >
-                                {isProcessing ? 'Processing...' : 'Approve'}
-                              </button>
-
-                              <button
-                                className="btn btn-sm btn-danger"
-                                disabled={isProcessing || userRef.role !== 'PAYMENT'}
-                                onClick={async () => {
-                                  if (isProcessing) {
-                                    return;
-                                  }
-
-                                  if (request.isBulkRequest && row.vehicleIndex !== null) {
-                                    openRowRejectModal(request, row.vehicleIndex);
-                                    return;
-                                  }
-
-                                  openRowRejectModal(request, null);
-                                }}
-                              >
-                                Reject
-                              </button>
-                            </div>
-                          );
-                        }
-
-                        if (request.status === REQUEST_STATUSES.CANCELLED) {
-                          return <span className="status-badge status-cancelled">CANCELLED</span>;
-                        }
-
-                        return <span className="text-muted">—</span>;
-                      })()}
-                    </td>
-                    {showAdditionalColumns && (
-                      <>
-                        <td className="request-id-cell">{row.requestId ? `${row.requestId.substring(0, 8)}...` : 'N/A'}</td>
-                        <td>{row.statusLabel}</td>
-                        <td>{row.location || 'N/A'}</td>
-                        <td>{row.availableTime || 'N/A'}</td>
-                        <td>{row.ltpocName || 'N/A'}</td>
-                        <td>{row.ltpocPhone || 'N/A'}</td>
-                      </>
-                    )}
-                    <td>
-                      <button
-                        className="btn btn-sm btn-secondary"
-                        onClick={() => {
-                          const req = filteredRequests.find((item) => item.id === row.requestId);
-                          if (!req) {
-                            return;
-                          }
-                          setSelectedRequest(req);
-                          setShowModal(true);
-                        }}
-                      >
-                        View
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              </table>
-            </div>
-          </>
-        )}
-      </div>
-
-      {selectedRequest && (
-        <Modal
-          isOpen={showModal}
-          title="Request Details - Payment Verification"
-          onClose={() => setShowModal(false)}
-          onSubmit={() => setShowModal(false)}
-          submitText="Close"
-        >
-          <div className="modal-details">
-            <p><strong>Request ID:</strong> {selectedRequest.id}</p>
-            <p><strong>Status:</strong> {getUnifiedStatusLabel(selectedRequest.status)}</p>
-            <p><strong>Client:</strong> {selectedRequest.clientName}</p>
-            <p><strong>City:</strong> {selectedRequest.city}{selectedRequest.isBulkRequest ? ' (Bulk)' : ''}</p>
-            <p><strong>Service Type:</strong> {selectedRequest.isBulkRequest ? 'Per-vehicle' : selectedRequest.serviceType || 'N/A'}</p>
-            {(() => {
-              const selectedVehicles = normalizeVehicles(selectedRequest.vehicles);
-              return <p><strong>Vehicles:</strong> {selectedVehicles.length || 0}</p>;
-            })()}
-
-            {selectedRequest.isBulkRequest && normalizeVehicles(selectedRequest.vehicles).length > 0 && (
-              <div style={{ marginTop: '16px', padding: '12px', backgroundColor: '#f9f9f9', borderRadius: '4px' }}>
-                <h4 style={{ marginTop: '0' }}>Per-Vehicle Details</h4>
-                {(() => {
-                  const selectedVehicles = normalizeVehicles(selectedRequest.vehicles);
-                  const ltpocByVehicle = new Map(
-                    ((selectedRequest.ltpocDetails ?? []) as Array<Record<string, unknown>>).map((item) => [
-                      String(item.vehicleNumber ?? ''),
-                      item,
-                    ])
-                  );
-
-                  return selectedVehicles.map((vehicle: any, idx: number) => {
-                    const matchedLtpoc = ltpocByVehicle.get(String(vehicle?.vehicleNumber ?? '')) as Record<string, unknown> | undefined;
-                    const isPaymentRejected = toBooleanFlag(vehicle?.paymentRejected) || Boolean(vehicle?.paymentRejectedAt);
-                    const paymentRejectionReason = getPaymentRejectionReason(vehicle as Record<string, unknown>, selectedRequest);
-                    return (
-                  <div key={idx} style={{ marginBottom: '12px', paddingBottom: '12px', borderBottom: idx < selectedVehicles.length - 1 ? '1px solid #ddd' : 'none' }}>
-                    <p><strong>Vehicle Number:</strong> {vehicle.vehicleNumber || 'N/A'}</p>
-                    {vehicle.serviceType && <p><strong>Service Type:</strong> {vehicle.serviceType}</p>}
-                    <p><strong>Service Cost:</strong> {getVehicleServiceCost(vehicle.serviceType, selectedRequest.serviceCost) ? `₹${getVehicleServiceCost(vehicle.serviceType, selectedRequest.serviceCost)}` : 'N/A'}</p>
-                    {vehicle.vehicleAvailabilityLocation && <p><strong>Location:</strong> {vehicle.vehicleAvailabilityLocation}</p>}
-                    {vehicle.vehicleAvailableTime && <p><strong>Available Time:</strong> {vehicle.vehicleAvailableTime}</p>}
-                    {(vehicle.ltpocName || matchedLtpoc?.ltpocName) && <p><strong>LTPOC Name:</strong> {vehicle.ltpocName || matchedLtpoc?.ltpocName}</p>}
-                    {(vehicle.ltpocPhone || matchedLtpoc?.ltpocPhone) && <p><strong>LTPOC Phone:</strong> {vehicle.ltpocPhone || matchedLtpoc?.ltpocPhone}</p>}
-                    <p>
-                      <strong>Payment State:</strong>{' '}
-                      {toBooleanFlag(vehicle?.paymentApproved) || Boolean(vehicle?.paymentApprovedAt)
-                        ? 'Approved'
-                        : isPaymentRejected
-                          ? 'Rejected'
-                          : 'Pending'}
-                    </p>
-                    {isPaymentRejected && paymentRejectionReason && (
-                      <p>
-                        <strong>Rejection Reason:</strong>{' '}
-                        <span className="rejection-reason-highlight">{paymentRejectionReason}</span>
-                      </p>
-                    )}
-                  </div>
-                    );
-                  });
-                })()}
-              </div>
-            )}
-
-            <AuditLog history={selectedRequest.history} legacyLogs={selectedRequest.auditLog} />
-
-            {!selectedRequest.paymentApproval &&
-              !selectedRequest.paymentActionTaken &&
-              selectedRequest.status === REQUEST_STATUSES.PARALLEL_REVIEW && (
-              <div className="action-buttons">
-                <button
-                  className="btn btn-secondary"
-                  onClick={() => setShowEditModal(true)}
-                >
-                  Edit & Approve
-                </button>
-              </div>
-            )}
-
-            {selectedRequest.paymentActionTaken && (
-              <div className="info-box" style={{ marginTop: '1rem', padding: '12px', background: '#e7f1ff', borderRadius: '4px' }}>
-                <p style={{ margin: 0, color: '#0c5460' }}>✓ Payment Action Completed</p>
-              </div>
-            )}
-          </div>
-        </Modal>
-      )}
-
-      {selectedRequest && (
-        <Modal
-          isOpen={showEditModal}
-          title="Edit Request"
-          onClose={() => setShowEditModal(false)}
-          onSubmit={handleEditAndApprove}
-          submitText="Save & Approve"
-        >
-          <div className="edit-form">
-            <div className="form-group">
-              <label>Client Name</label>
+      <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-6">
+        <div className="flex flex-wrap items-end gap-4">
+          <div className="min-w-[240px] flex-1">
+            <label className="mb-1 block text-xs font-bold uppercase text-slate-500">Search</label>
+            <div className="relative">
+              <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                <span className="material-symbols-outlined text-sm">search</span>
+              </span>
               <input
                 type="text"
-                value={(editData.clientName as string) || selectedRequest.clientName || ''}
-                onChange={(event) =>
-                  setEditData({ ...editData, clientName: event.target.value })
-                }
-              />
-            </div>
-            <div className="form-group">
-              <label>City</label>
-              <input
-                type="text"
-                value={(editData.city as string) || selectedRequest.city || ''}
-                onChange={(event) => setEditData({ ...editData, city: event.target.value })}
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                placeholder="Search by Client or ID..."
+                className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-10 pr-4 text-sm focus:border-primary focus:ring-primary"
               />
             </div>
           </div>
-        </Modal>
-      )}
-
-      {selectedRequest && (
-        <Modal
-          isOpen={showRejectModal}
-          title="Reject Request"
-          onClose={() => {
-            setShowRejectModal(false);
-            setRejectTarget(null);
-            setRejectionReason('');
-          }}
-          onSubmit={handleReject}
-          submitText="Reject"
-        >
-          <div className="form-group">
-            <label>Rejection Reason</label>
-            <textarea
-              rows={4}
-              value={rejectionReason}
-              onChange={(event) => setRejectionReason(event.target.value)}
-              placeholder="Provide a reason for rejection"
+          <div className="w-48">
+            <label className="mb-1 block text-xs font-bold uppercase text-slate-500">City Filter</label>
+            <select
+              value={cityFilter}
+              onChange={(event) => setCityFilter(event.target.value)}
+              className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 text-sm focus:border-primary focus:ring-primary"
+            >
+              <option value="all">All Cities</option>
+              {cityOptions.map((city) => (
+                <option key={city} value={city}>{city}</option>
+              ))}
+            </select>
+          </div>
+          <div className="w-40">
+            <label className="mb-1 block text-xs font-bold uppercase text-slate-500">From Date</label>
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(event) => setDateFrom(event.target.value)}
+              className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 text-sm focus:border-primary focus:ring-primary"
             />
           </div>
-        </Modal>
-      )}
-    </div>
+          <div className="w-40">
+            <label className="mb-1 block text-xs font-bold uppercase text-slate-500">To Date</label>
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(event) => setDateTo(event.target.value)}
+              className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 text-sm focus:border-primary focus:ring-primary"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => exportPaymentRowsToCsv(filteredRows, 'dashboard')}
+            disabled={filteredRows.length === 0}
+            className="flex items-center gap-2 rounded-lg bg-primary px-6 py-2 font-bold text-white transition-colors hover:bg-primary/90 disabled:opacity-60"
+          >
+            <span className="material-symbols-outlined text-sm">download</span>
+            Download CSV
+          </button>
+        </div>
+        <div className="flex items-center gap-2 border-t border-slate-100 pt-2">
+          <label className="relative inline-flex cursor-pointer items-center">
+            <input
+              type="checkbox"
+              className="peer sr-only"
+              checked={showAdditionalColumns}
+              onChange={(event) => setShowAdditionalColumns(event.target.checked)}
+            />
+            <div className="h-6 w-11 rounded-full bg-slate-200 after:absolute after:start-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all peer-checked:bg-primary peer-checked:after:translate-x-full" />
+            <span className="ms-3 text-sm font-medium text-slate-600">Show extra details</span>
+          </label>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between">
+        <h2 className="flex items-center gap-2 text-lg font-bold">
+          Pending Requests
+          <span className="rounded bg-primary/20 px-2 py-0.5 text-xs text-primary">{filteredRows.length} Actionable</span>
+        </h2>
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={() => setSelectedRowKeys([])}
+            disabled={selectedRowKeys.length === 0}
+            className="rounded-lg border border-slate-300 px-4 py-2 font-bold transition-colors hover:bg-slate-50 disabled:opacity-60"
+          >
+            Clear Selection
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              const selectedRows = filteredRows.filter((row) => selectedRowKeys.includes(getPaymentRowKey(row)));
+              void handleApproveMany(selectedRows, 'Approve selected');
+            }}
+            disabled={bulkActioning || selectedRowKeys.length === 0}
+            className="rounded-lg border border-primary/30 bg-primary/20 px-4 py-2 font-bold text-primary transition-colors hover:bg-primary/30 disabled:opacity-60"
+          >
+            Approve Selected
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleApproveMany(pendingRows, 'Approve all pending')}
+            disabled={bulkActioning || pendingRows.length === 0}
+            className="rounded-lg bg-primary px-4 py-2 font-bold text-white transition-colors hover:bg-primary/90 disabled:opacity-60"
+          >
+            Approve All Pending
+          </button>
+        </div>
+      </div>
+
+      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div className={showAdditionalColumns ? 'overflow-x-auto' : 'overflow-x-hidden'}>
+          <table className={`${showAdditionalColumns ? 'min-w-[1600px]' : 'w-full'} border-collapse text-left`}>
+            <thead>
+              <tr className="border-b border-slate-200 bg-slate-50">
+                <th className="w-12 p-4">
+                  <input
+                    type="checkbox"
+                    className="rounded border-slate-300 text-primary focus:ring-primary"
+                    checked={allFilteredSelected}
+                    onChange={(event) => {
+                      if (event.target.checked) {
+                        setSelectedRowKeys(filteredRowKeys);
+                        return;
+                      }
+                      setSelectedRowKeys([]);
+                    }}
+                  />
+                </th>
+                <th className="p-4 text-[11px] font-semibold uppercase tracking-wide text-slate-700">Request ID</th>
+                <th className="p-4 text-[11px] font-semibold uppercase tracking-wide text-slate-700">Status</th>
+                <th className="p-4 text-[11px] font-semibold uppercase tracking-wide text-slate-700">Client</th>
+                <th className="p-4 text-[11px] font-semibold uppercase tracking-wide text-slate-700">Vehicle Number</th>
+                <th className="p-4 text-[11px] font-semibold uppercase tracking-wide text-slate-700">Service Type</th>
+                <th className="p-4 text-right text-[11px] font-semibold uppercase tracking-wide text-slate-700">Service Charge</th>
+                <th className="p-4 text-[11px] font-semibold uppercase tracking-wide text-slate-700">Date</th>
+                <th className="p-4 text-center text-[11px] font-semibold uppercase tracking-wide text-slate-700">Actions</th>
+                {showAdditionalColumns ? (
+                  <>
+                    <th className="p-4 text-[11px] font-semibold uppercase tracking-wide text-slate-700">Location</th>
+                    <th className="p-4 text-[11px] font-semibold uppercase tracking-wide text-slate-700">Available Time</th>
+                    <th className="p-4 text-[11px] font-semibold uppercase tracking-wide text-slate-700">LTPOC</th>
+                    <th className="p-4 text-[11px] font-semibold uppercase tracking-wide text-slate-700">LTPOC Phone</th>
+                    <th className="p-4 text-[11px] font-semibold uppercase tracking-wide text-slate-700">Rejection Reason</th>
+                  </>
+                ) : null}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {filteredRows.length === 0 ? (
+                <tr>
+                  <td className="p-10 text-center text-sm text-slate-500" colSpan={showAdditionalColumns ? 14 : 9}>
+                    No payment requests found.
+                  </td>
+                </tr>
+              ) : (
+                filteredRows.map((row) => {
+                  const rowKey = getPaymentRowKey(row);
+                  const isBusy = bulkActioning || actioningKeys.includes(rowKey);
+                  return (
+                    <tr key={rowKey} className="transition-colors hover:bg-slate-50/50">
+                      <td className="p-4">
+                        <input
+                          type="checkbox"
+                          className="rounded border-slate-300 text-primary focus:ring-primary"
+                          checked={selectedRowKeys.includes(rowKey)}
+                          onChange={(event) => {
+                            setSelectedRowKeys((current) => {
+                              if (event.target.checked) {
+                                return current.includes(rowKey) ? current : [...current, rowKey];
+                              }
+                              return current.filter((key) => key !== rowKey);
+                            });
+                          }}
+                        />
+                      </td>
+                      <td className="p-4">
+                        <span className="rounded bg-slate-100 px-2 py-1 text-xs font-bold text-slate-700">{formatRequestIdDisplay(row.requestId)}</span>
+                      </td>
+                      <td className="p-4">
+                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${getPaymentRowStatusClass(row)}`}>
+                          {getPaymentRowStatusLabel(row)}
+                        </span>
+                      </td>
+                      <td className="p-4 text-slate-700">{row.clientName || 'N/A'}</td>
+                      <td className="p-4 font-mono text-sm">
+                        {row.vehicleNumber || 'N/A'}{' '}
+                        <span className="font-sans text-[11px] text-slate-500">({row.isBulkRequest ? 'Bulk' : 'Single'})</span>
+                      </td>
+                      <td className="p-4">
+                        <span className="inline-flex items-center rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary">
+                          {row.serviceType || 'N/A'}
+                        </span>
+                      </td>
+                      <td className="p-4 text-right text-slate-700">{formatPaymentServiceCharge(row.serviceCost)}</td>
+                      <td className="p-4 text-sm text-slate-500">{row.createdDate || 'N/A'}</td>
+                      <td className="p-4">
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setViewRow(row)}
+                            className="rounded border border-primary px-3 py-1 text-[10px] font-bold uppercase transition-colors hover:bg-primary/5"
+                            style={{ color: '#f26a21', borderColor: '#f26a21' }}
+                          >
+                            View
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void handleApproveRow(row)}
+                            disabled={isBusy}
+                            className="rounded bg-primary px-3 py-1 text-[10px] font-bold uppercase text-white transition-colors hover:bg-primary/90 disabled:opacity-60"
+                          >
+                            {isBusy ? 'Working...' : 'Approve'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setRejectRow(row);
+                              setRejectionReason('');
+                            }}
+                            disabled={isBusy}
+                            className="rounded bg-red-600 px-3 py-1 text-[10px] font-bold uppercase text-white transition-colors hover:bg-red-700 disabled:opacity-60"
+                          >
+                            Reject
+                          </button>
+                        </div>
+                      </td>
+                      {showAdditionalColumns ? (
+                        <>
+                          <td className="p-4 text-sm text-slate-600">{row.vehicleAvailabilityLocation || 'N/A'}</td>
+                          <td className="p-4 text-sm text-slate-600">{row.vehicleAvailableTime || 'N/A'}</td>
+                          <td className="p-4 text-sm text-slate-600">{row.ltpocName || 'N/A'}</td>
+                          <td className="p-4 text-sm text-slate-600">{row.ltpocPhone || 'N/A'}</td>
+                          <td className="p-4 text-sm text-slate-600">{row.rejectionReason || '—'}</td>
+                        </>
+                      ) : null}
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+        <div className="flex items-center justify-between border-t border-slate-200 p-4">
+          <p className="text-sm text-slate-500">Showing {Math.min(filteredRows.length, filteredRows.length)} of {pendingRows.length} pending requests</p>
+          <div className="flex gap-2">
+            <button type="button" disabled className="rounded border border-slate-200 px-3 py-1 opacity-50">Previous</button>
+            <button type="button" className="rounded border border-primary bg-primary px-3 py-1 text-white">1</button>
+            <button type="button" disabled className="rounded border border-slate-200 px-3 py-1 opacity-50">Next</button>
+          </div>
+        </div>
+      </div>
+
+      <Modal isOpen={Boolean(viewRow)} title="" onClose={() => setViewRow(null)} showFooter={false}>
+        {viewRow ? (
+          <div className="space-y-8">
+            <header className="flex items-center justify-between border-b border-slate-100 pb-5">
+              <h2 className="text-2xl font-bold tracking-tight text-primary">Payment Verification Details</h2>
+              <button type="button" onClick={() => setViewRow(null)} className="group rounded-full p-2 transition-colors hover:bg-red-50">
+                <span className="material-symbols-outlined text-slate-400 group-hover:text-red-600">close</span>
+              </button>
+            </header>
+
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+              <div className="rounded-xl border border-primary/10 bg-primary/5 p-6">
+                <p className="mb-1 text-sm font-medium uppercase tracking-wider text-slate-500">Payment ID</p>
+                <p className="text-xl font-bold text-slate-900">{formatRequestIdDisplay(viewRow.requestId)}</p>
+              </div>
+              <div className="rounded-xl border border-primary/10 bg-primary/5 p-6">
+                <p className="mb-1 text-sm font-medium uppercase tracking-wider text-slate-500">Status</p>
+                <p className="text-xl font-bold text-slate-900">{getPaymentRowStatusLabel(viewRow)}</p>
+              </div>
+              <div className="rounded-xl border border-primary/10 bg-primary/5 p-6">
+                <p className="mb-1 text-sm font-medium uppercase tracking-wider text-slate-500">Vehicle Count</p>
+                <p className="text-xl font-bold text-slate-900">{detailsRows.length} Units</p>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="mb-4 text-lg font-bold uppercase tracking-wide text-primary">Vehicle-Specific Details</h3>
+              <div className="overflow-x-auto rounded-lg border border-slate-200">
+                <table className="w-full border-collapse text-left">
+                  <thead>
+                    <tr className="bg-slate-50">
+                      <th className="px-4 py-3 text-xs font-bold uppercase text-slate-600">Vehicle No.</th>
+                      <th className="px-4 py-3 text-xs font-bold uppercase text-slate-600">Type</th>
+                      <th className="px-4 py-3 text-xs font-bold uppercase text-slate-600">Cost (INR)</th>
+                      <th className="px-4 py-3 text-xs font-bold uppercase text-slate-600">Location</th>
+                      <th className="px-4 py-3 text-xs font-bold uppercase text-slate-600">LTPOC Contact</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {detailsRows.map((row) => (
+                      <tr key={getPaymentRowKey(row)} className="transition-colors hover:bg-slate-50/50">
+                        <td className="px-4 py-4 text-sm font-semibold text-slate-900">
+                          {row.vehicleNumber || 'N/A'}{' '}
+                          <span className="text-xs font-medium text-slate-500">({row.isBulkRequest ? 'Bulk' : 'Single'})</span>
+                        </td>
+                        <td className="px-4 py-4 text-sm text-slate-600">{row.serviceType || 'N/A'}</td>
+                        <td className="px-4 py-4 text-sm font-bold text-slate-900">{formatPaymentServiceCharge(row.serviceCost)}</td>
+                        <td className="px-4 py-4 text-sm text-slate-600">{row.vehicleAvailabilityLocation || 'N/A'}</td>
+                        <td className="px-4 py-4 text-sm">
+                          <div className="font-medium text-slate-900">{row.ltpocName || 'N/A'}</div>
+                          <div className="text-xs text-slate-500">{row.ltpocPhone || 'N/A'}</div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <footer className="flex items-center justify-end gap-3 border-t border-slate-100 bg-slate-50 px-2 py-6">
+              <button type="button" onClick={() => setViewRow(null)} className="rounded-lg border border-slate-300 px-6 py-2.5 font-bold text-slate-700 transition-colors hover:bg-slate-100">
+                Close
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setRejectRow(viewRow);
+                  setRejectionReason('');
+                  setViewRow(null);
+                }}
+                className="rounded-lg border border-red-200 px-6 py-2.5 font-bold text-red-600 transition-colors hover:bg-red-50"
+              >
+                Reject
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleApproveRow(viewRow)}
+                disabled={actioningKeys.includes(getPaymentRowKey(viewRow))}
+                className="rounded-lg bg-primary px-8 py-2.5 font-bold text-white shadow-lg shadow-primary/20 transition-colors hover:bg-primary/90 disabled:opacity-60"
+              >
+                Approve
+              </button>
+            </footer>
+          </div>
+        ) : null}
+      </Modal>
+
+      <Modal isOpen={Boolean(rejectRow)} title="" onClose={() => { setRejectRow(null); setRejectionReason(''); }} showFooter={false}>
+        {rejectRow ? (
+          <div>
+            <header className="flex items-center justify-between border-b border-slate-100 px-1 pb-4">
+              <h2 className="text-xl font-bold text-primary">Reject Payment</h2>
+              <button type="button" onClick={() => setRejectRow(null)} className="group rounded-full p-2 transition-colors hover:bg-red-50">
+                <span className="material-symbols-outlined text-slate-400 group-hover:text-red-600">close</span>
+              </button>
+            </header>
+            <div className="p-1 pt-6">
+              <label className="mb-2 block text-sm font-bold text-slate-900">
+                Reason for Rejection <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <textarea
+                  rows={4}
+                  maxLength={500}
+                  value={rejectionReason}
+                  onChange={(event) => setRejectionReason(event.target.value)}
+                  placeholder="Provide details on why this payment is being rejected..."
+                  className="w-full rounded-lg border border-slate-300 p-4 pr-16 text-sm focus:border-primary focus:ring-primary"
+                />
+                <div className="absolute bottom-3 right-3 text-xs font-medium text-slate-400">
+                  {rejectionReason.length} / 500
+                </div>
+              </div>
+              <p className="mt-2 text-xs text-slate-500">This feedback will be shared with the requesting department.</p>
+            </div>
+            <footer className="mt-4 flex items-center justify-end gap-3 border-t border-slate-100 bg-slate-50 px-1 py-4">
+              <button
+                type="button"
+                onClick={() => {
+                  setRejectRow(null);
+                  setRejectionReason('');
+                }}
+                className="rounded-lg px-6 py-2 font-bold text-slate-600 transition-colors hover:bg-slate-200"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleRejectRow}
+                disabled={actioningKeys.includes(getPaymentRowKey(rejectRow))}
+                className="rounded-lg bg-red-600 px-8 py-2 font-bold text-white shadow-lg shadow-red-200 transition-colors hover:bg-red-700 disabled:opacity-60"
+              >
+                Confirm Reject
+              </button>
+            </footer>
+          </div>
+        ) : null}
+      </Modal>
+    </PaymentConsoleLayout>
   );
 };
+
+export default PaymentDashboard;

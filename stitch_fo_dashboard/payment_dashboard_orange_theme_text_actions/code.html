@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Payment Dashboard - GPS Installation Automation</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f26a21",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#221610",
+                    },
+                    fontFamily: {
+                        "display": ["Public Sans"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Public Sans', sans-serif; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display">
+<div class="flex min-h-screen">
+<!-- Sidebar -->
+<aside class="w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col fixed h-full z-20">
+<div class="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center gap-3">
+<div class="h-10 w-10 bg-primary rounded-lg flex items-center justify-center text-white font-bold text-xl">G</div>
+<span class="font-bold text-lg tracking-tight">GPS Admin</span>
+</div>
+<nav class="flex-1 px-4 py-6 space-y-2">
+<a class="flex items-center gap-3 px-4 py-3 bg-primary/10 text-primary rounded-lg font-semibold" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+                    Dashboard
+                </a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined">history</span>
+                    History
+                </a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined">person</span>
+                    Profile
+                </a>
+</nav>
+<div class="p-4 mt-auto border-t border-slate-200 dark:border-slate-800">
+<div class="flex items-center gap-3 p-2">
+<img alt="Sarah Jenkins" class="h-10 w-10 rounded-full border border-slate-200" data-alt="Professional portrait of Sarah Jenkins Controller" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAsUcIf2BSfP3gw9X4gK6YLZDgTETROVUG55jcoRkWBx6Ja7RYJRhX6ZHKHky0xMQQxDu4eBoAbKbaQSNY-ssDj6ZYYmkWL8D2ZoZqpIiAoGQ5rCWTpAyQbYodFA0GPVFEuaEI8krgdF7kxixnKd-Tp7STz1AUEAQc7MqKYxyd0XRtwZKABLVOzhZuEe7Lj9gf-GBh0dicJVpNZMCkFsoMz0S5H0MRR-C_7SlKS48Ag5lPnoXjqM-uEgsf7I_6Sog3IN4Rhen2nkQs"/>
+<div class="flex flex-col">
+<p class="text-sm font-bold">Sarah Jenkins</p>
+<p class="text-xs text-slate-500">Controller</p>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 ml-64 flex flex-col">
+<!-- Top Utility Bar -->
+<header class="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-8 sticky top-0 z-10">
+<h1 class="text-xl font-bold text-primary uppercase tracking-wider">Payment Team Console</h1>
+<div class="flex items-center gap-6">
+<button class="relative p-2 text-slate-500 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-2 right-2 h-2 w-2 bg-primary rounded-full ring-2 ring-white"></span>
+</button>
+<div class="h-8 w-px bg-slate-200 dark:bg-slate-700"></div>
+<div class="flex items-center gap-3">
+<span class="text-sm font-medium hidden md:block">Sarah Jenkins</span>
+<span class="material-symbols-outlined text-slate-400">settings</span>
+</div>
+</div>
+</header>
+<div class="p-8 space-y-8">
+<!-- KPI Cards -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<div class="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+<p class="text-sm font-medium text-slate-500 uppercase">Total Requests</p>
+<p class="text-3xl font-black text-slate-900 dark:text-white mt-1">1,284</p>
+</div>
+<div class="bg-white dark:bg-slate-900 p-6 rounded-xl border-l-4 border-l-primary border border-slate-200 dark:border-slate-800 shadow-sm">
+<p class="text-sm font-medium text-slate-500 uppercase">Pending Requests</p>
+<p class="text-4xl font-black text-primary mt-1">42</p>
+</div>
+<div class="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+<p class="text-sm font-medium text-slate-500 uppercase">Processed Requests</p>
+<p class="text-3xl font-black text-slate-900 dark:text-white mt-1">1,242</p>
+</div>
+</div>
+<!-- Filters -->
+<div class="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 space-y-4">
+<div class="flex flex-wrap items-end gap-4">
+<div class="flex-1 min-w-[240px]">
+<label class="block text-xs font-bold uppercase text-slate-500 mb-1">Search</label>
+<div class="relative">
+<span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+<span class="material-symbols-outlined text-sm">search</span>
+</span>
+<input class="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg focus:ring-primary focus:border-primary" placeholder="Search by Client or ID..." type="text"/>
+</div>
+</div>
+<div class="w-48">
+<label class="block text-xs font-bold uppercase text-slate-500 mb-1">City Filter</label>
+<select class="w-full py-2 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg focus:ring-primary focus:border-primary">
+<option>All Cities</option>
+<option>New York</option>
+<option>London</option>
+<option>Berlin</option>
+</select>
+</div>
+<div class="w-40">
+<label class="block text-xs font-bold uppercase text-slate-500 mb-1">From Date</label>
+<input class="w-full py-2 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg focus:ring-primary focus:border-primary" type="date"/>
+</div>
+<div class="w-40">
+<label class="block text-xs font-bold uppercase text-slate-500 mb-1">To Date</label>
+<input class="w-full py-2 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg focus:ring-primary focus:border-primary" type="date"/>
+</div>
+<button class="px-6 py-2 bg-primary text-white font-bold rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">download</span>
+                            Download CSV
+                        </button>
+</div>
+<div class="flex items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+<label class="relative inline-flex items-center cursor-pointer">
+<input class="sr-only peer" type="checkbox" value=""/>
+<div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+<span class="ms-3 text-sm font-medium text-slate-600">Show extra details</span>
+</label>
+</div>
+</div>
+<!-- Bulk Controls -->
+<div class="flex items-center justify-between">
+<h2 class="text-lg font-bold flex items-center gap-2">
+                        Pending Requests
+                        <span class="bg-primary/20 text-primary px-2 py-0.5 rounded text-xs">42 Actionable</span>
+</h2>
+<div class="flex gap-3">
+<button class="px-4 py-2 border border-slate-300 dark:border-slate-600 font-bold rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">Clear Selection</button>
+<button class="px-4 py-2 bg-primary/20 text-primary border border-primary/30 font-bold rounded-lg hover:bg-primary/30 transition-colors">Approve Selected</button>
+<button class="px-4 py-2 bg-primary text-white font-bold rounded-lg hover:bg-primary/90 transition-colors">Approve All Pending</button>
+</div>
+</div>
+<!-- Table -->
+<div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
+<th class="p-4 w-12"><input class="rounded border-slate-300 text-primary focus:ring-primary" type="checkbox"/></th>
+<th class="p-4 text-xs font-bold uppercase text-slate-500">Request ID</th>
+<th class="p-4 text-xs font-bold uppercase text-slate-500">Status</th>
+<th class="p-4 text-xs font-bold uppercase text-slate-500">Client</th>
+<th class="p-4 text-xs font-bold uppercase text-slate-500">Vehicle Number</th>
+<th class="p-4 text-xs font-bold uppercase text-slate-500">Service Type</th>
+<th class="p-4 text-xs font-bold uppercase text-slate-500 text-right">Service Charge</th>
+<th class="p-4 text-xs font-bold uppercase text-slate-500">Date</th>
+<th class="p-4 text-xs font-bold uppercase text-slate-500 text-center">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+<!-- Row 1 -->
+<tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+<td class="p-4"><input class="rounded border-slate-300 text-primary focus:ring-primary" type="checkbox"/></td>
+<td class="p-4">
+<span class="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2 py-1 rounded text-xs font-bold">#REQ-8291</span>
+</td>
+<td class="p-4">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">Pending Approval</span>
+</td>
+<td class="p-4 font-bold text-slate-900 dark:text-white">BlueSky Logistics</td>
+<td class="p-4 font-mono text-sm">TX-82-BK-9021</td>
+<td class="p-4">Advanced GPS Install</td>
+<td class="p-4 text-right font-bold">$249.00</td>
+<td class="p-4 text-sm text-slate-500">Oct 24, 2023</td>
+<td class="p-4">
+<div class="flex items-center justify-center gap-2">
+<button class="px-3 py-1 border border-primary text-primary hover:bg-primary/5 rounded font-bold text-[10px] uppercase transition-colors" title="View Details">View</button>
+<button class="px-3 py-1 bg-primary text-white hover:bg-primary/90 rounded font-bold text-[10px] uppercase transition-colors" title="Approve">Approve</button>
+<button class="px-3 py-1 bg-red-600 text-white hover:bg-red-700 rounded font-bold text-[10px] uppercase transition-colors" title="Reject">Reject</button>
+</div>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+<td class="p-4"><input class="rounded border-slate-300 text-primary focus:ring-primary" type="checkbox"/></td>
+<td class="p-4">
+<span class="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2 py-1 rounded text-xs font-bold">#REQ-8295</span>
+</td>
+<td class="p-4">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">Pending Approval</span>
+</td>
+<td class="p-4 font-bold text-slate-900 dark:text-white">Swift Delivery Co.</td>
+<td class="p-4 font-mono text-sm">CA-11-RT-4482</td>
+<td class="p-4">Routine Maintenance</td>
+<td class="p-4 text-right font-bold">$85.00</td>
+<td class="p-4 text-sm text-slate-500">Oct 25, 2023</td>
+<td class="p-4">
+<div class="flex items-center justify-center gap-2">
+<button class="px-3 py-1 border border-primary text-primary hover:bg-primary/5 rounded font-bold text-[10px] uppercase transition-colors" title="View Details">View</button>
+<button class="px-3 py-1 bg-primary text-white hover:bg-primary/90 rounded font-bold text-[10px] uppercase transition-colors" title="Approve">Approve</button>
+<button class="px-3 py-1 bg-red-600 text-white hover:bg-red-700 rounded font-bold text-[10px] uppercase transition-colors" title="Reject">Reject</button>
+</div>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+<td class="p-4"><input class="rounded border-slate-300 text-primary focus:ring-primary" type="checkbox"/></td>
+<td class="p-4">
+<span class="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2 py-1 rounded text-xs font-bold">#REQ-8302</span>
+</td>
+<td class="p-4">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">Pending Approval</span>
+</td>
+<td class="p-4 font-bold text-slate-900 dark:text-white">Peak Distributions</td>
+<td class="p-4 font-mono text-sm">NY-90-LL-1209</td>
+<td class="p-4">Fleet Tracking Setup</td>
+<td class="p-4 text-right font-bold">$1,450.00</td>
+<td class="p-4 text-sm text-slate-500">Oct 25, 2023</td>
+<td class="p-4">
+<div class="flex items-center justify-center gap-2">
+<button class="px-3 py-1 border border-primary text-primary hover:bg-primary/5 rounded font-bold text-[10px] uppercase transition-colors" title="View Details">View</button>
+<button class="px-3 py-1 bg-primary text-white hover:bg-primary/90 rounded font-bold text-[10px] uppercase transition-colors" title="Approve">Approve</button>
+<button class="px-3 py-1 bg-red-600 text-white hover:bg-red-700 rounded font-bold text-[10px] uppercase transition-colors" title="Reject">Reject</button>
+</div>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+<td class="p-4"><input class="rounded border-slate-300 text-primary focus:ring-primary" type="checkbox"/></td>
+<td class="p-4">
+<span class="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2 py-1 rounded text-xs font-bold">#REQ-8310</span>
+</td>
+<td class="p-4">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">Pending Approval</span>
+</td>
+<td class="p-4 font-bold text-slate-900 dark:text-white">EcoFreight Global</td>
+<td class="p-4 font-mono text-sm">TX-44-BB-3110</td>
+<td class="p-4">Sensor Recalibration</td>
+<td class="p-4 text-right font-bold">$120.00</td>
+<td class="p-4 text-sm text-slate-500">Oct 26, 2023</td>
+<td class="p-4">
+<div class="flex items-center justify-center gap-2">
+<button class="px-3 py-1 border border-primary text-primary hover:bg-primary/5 rounded font-bold text-[10px] uppercase transition-colors" title="View Details">View</button>
+<button class="px-3 py-1 bg-primary text-white hover:bg-primary/90 rounded font-bold text-[10px] uppercase transition-colors" title="Approve">Approve</button>
+<button class="px-3 py-1 bg-red-600 text-white hover:bg-red-700 rounded font-bold text-[10px] uppercase transition-colors" title="Reject">Reject</button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="p-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+<p class="text-sm text-slate-500">Showing 4 of 42 pending requests</p>
+<div class="flex gap-2">
+<button class="px-3 py-1 border border-slate-200 dark:border-slate-700 rounded hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50" disabled="">Previous</button>
+<button class="px-3 py-1 border border-slate-200 dark:border-slate-700 rounded bg-primary text-white border-primary">1</button>
+<button class="px-3 py-1 border border-slate-200 dark:border-slate-700 rounded hover:bg-slate-50 dark:hover:bg-slate-800">2</button>
+<button class="px-3 py-1 border border-slate-200 dark:border-slate-700 rounded hover:bg-slate-50 dark:hover:bg-slate-800">3</button>
+<button class="px-3 py-1 border border-slate-200 dark:border-slate-700 rounded hover:bg-slate-50 dark:hover:bg-slate-800">Next</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

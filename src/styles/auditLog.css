@@ -91,3 +91,100 @@
   color: var(--text-muted);
   white-space: nowrap;
 }
+
+@media (max-width: 768px) {
+  .audit-log {
+    padding: 0.8rem;
+  }
+
+  .audit-log h3 {
+    font-size: 0.95rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .audit-log-table-wrapper {
+    overflow: visible;
+  }
+
+  .audit-log-table {
+    border-collapse: separate;
+    border-spacing: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .audit-log-table thead {
+    display: none;
+  }
+
+  .audit-log-table,
+  .audit-log-table tbody,
+  .audit-log-table tr,
+  .audit-log-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .audit-log-table tbody tr {
+    background: #ffffff;
+    border: 1px solid var(--gray-200);
+    border-radius: 10px;
+    padding: 0.55rem 0.65rem;
+    margin-bottom: 0.6rem;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+  }
+
+  .audit-log-table td {
+    padding: 0.42rem 0;
+    border-bottom: 1px dashed var(--gray-200);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.55rem;
+    text-align: right;
+    font-size: 0.82rem;
+  }
+
+  .audit-log-table td:last-child {
+    border-bottom: none;
+  }
+
+  .audit-log-table td::before {
+    color: var(--gray-500);
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    flex: 0 0 42%;
+    text-align: left;
+  }
+
+  .audit-log-table td:nth-child(1)::before {
+    content: 'Action';
+  }
+
+  .audit-log-table td:nth-child(2)::before {
+    content: 'Status From';
+  }
+
+  .audit-log-table td:nth-child(3)::before {
+    content: 'Status To';
+  }
+
+  .audit-log-table td:nth-child(4)::before {
+    content: 'Performed By';
+  }
+
+  .audit-log-table td:nth-child(5)::before {
+    content: 'Notes';
+  }
+
+  .audit-log-table td:nth-child(6)::before {
+    content: 'Timestamp';
+  }
+
+  .notes-cell {
+    max-width: none;
+    word-break: break-word;
+  }
+}

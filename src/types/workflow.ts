@@ -64,6 +64,8 @@ export type HistoryEntry = {
 
 export type RequestRecord = {
   id?: string;
+  requestSequence?: number | null;
+  requestDisplayId?: string | null;
   
   // Vehicle data - ENHANCED for per-vehicle details in bulk
   vehicles?: Array<{
@@ -79,6 +81,8 @@ export type RequestRecord = {
   
   city?: string | null;
   clientName?: string | null;
+  assignedRhEmail?: string | null;
+  assignedRhUserId?: string | null;
   serviceType?: 'FleetX' | 'WheelsEye' | null; // Legacy: single request only
   vendorType?: 'fleetx' | 'wheelseye' | null; // For vendor notifications
   serviceCost?: number | null;

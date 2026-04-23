@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>RH Dashboard - GPS System</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f26a21",
+                        "background-light": "#f8f6f5",
+                        "background-dark": "#221610",
+                    },
+                    fontFamily: {
+                        "display": ["IBM Plex Sans", "Inter", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'IBM Plex Sans', sans-serif; }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 antialiased" style="color: #000000; font-weight: 400;">
+<div class="flex h-screen overflow-hidden">
+<!-- Sidebar -->
+<aside class="w-64 flex-shrink-0 border-r border-primary/10 bg-white dark:bg-background-dark/50 flex flex-col">
+<div class="p-6 flex items-center gap-3">
+<div class="size-8 rounded-lg flex items-center justify-center text-white border border-[#f26a21]"></div>
+<h1 class="text-xl tracking-tight dark:text-slate-100 text-[#f26a21]">GPS Admin</h1>
+</div>
+<div class="px-4 py-2">
+<div class="flex items-center gap-3 p-3 bg-primary/5 rounded-xl border border-primary/10">
+<div class="size-10 rounded-full bg-primary/20 bg-cover bg-center" data-alt="User profile portrait of regional head" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCKT35nRThFpdFFymOPEnVKjaGI8hKmmYB6w2bFOUcipRuJzDzDjp3XcqQnRwGLrNNCeRIAb6cmHYT0ePuBOQGcmekh2mz5lspK2Fq_mSrEGIL3_gQsN7uoh7UH7r7-9Todfr-oM13knjt2URfPjGhBuz0CFIo7LNeS-sS6Ja6IFp7kCoE6ANFs_4P8ktfOFykMiBDxYrmQw0XPZ_O5VfP7rrHPdiYOvUf2ppzBhEnh_dEj6_uXcyu0SaP7QOL9rO6GXPMT-Wxrjxg')"></div>
+<div class="flex flex-col">
+<span class="text-sm">Alex Rivera</span>
+<span class="text-xs text-slate-500">Regional Head</span>
+</div>
+</div>
+</div>
+<nav class="flex-1 px-4 py-6 space-y-1">
+<a class="flex items-center gap-3 px-3 py-2 text-primary bg-primary/10 rounded-lg font-medium" href="#">
+<span class="">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg transition-colors" href="#">
+<span class="">History</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg transition-colors" href="#">
+<span class="">Profile</span>
+</a>
+</nav>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 flex flex-col min-w-0 overflow-hidden">
+<!-- Topbar -->
+<header class="h-16 flex items-center justify-between px-8 border-b border-primary/10 bg-white/50 dark:bg-background-dark/30 backdrop-blur-md">
+<div class="flex items-center flex-1 max-w-xl">
+<div class="relative w-full">
+<input class="w-full pl-10 pr-4 py-2 bg-slate-100 dark:bg-white/5 border-none focus:ring-2 focus:ring-primary/50 rounded-lg text-sm transition-all" placeholder="Search across requests, assets, or regions..." type="text"/>
+</div>
+</div>
+<button class="px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors">LogOut</button>
+</header>
+<!-- Scrollable Body -->
+<div class="flex-1 overflow-y-auto p-8 space-y-8">
+<!-- KPI Section -->
+<section>
+<div class="flex items-end justify-between mb-6">
+<div class="">
+<h2 class="text-2xl dark:text-slate-100 text-[#f26a21]">Overview</h2>
+<p class="text-slate-500 text-sm">Regional snapshot for North America</p>
+</div>
+<div class="flex items-center gap-2 text-sm font-medium text-slate-500 bg-white dark:bg-white/5 px-4 py-2 rounded-lg border border-slate-200 dark:border-white/5 shadow-sm">
+
+                            Today, Oct 24
+                        </div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+<div class="p-6 bg-white dark:bg-white/5 border border-primary/20 rounded-xl shadow-sm relative overflow-hidden group">
+<div class="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-110"></div>
+<div class="flex flex-col gap-1 relative z-10">
+<span class="text-sm font-medium text-slate-500 uppercase tracking-wider">Pending My Approval</span>
+<div class="flex items-center gap-3">
+<span class="text-3xl text-slate-900 dark:text-slate-100 leading-none">14</span>
+<span class="flex items-center text-xs text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-1 rounded-full">
+ 12%
+                                    </span>
+</div>
+</div>
+<div class="mt-4 flex items-center gap-2 text-primary text-xs cursor-pointer hover:underline">
+                                View all pending 
+</div>
+</div>
+<div class="p-6 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-xl shadow-sm relative overflow-hidden group">
+<div class="flex flex-col gap-1">
+<span class="text-sm font-medium text-slate-500 uppercase tracking-wider">Parallel Reviews</span>
+<div class="flex items-center gap-3">
+<span class="text-3xl text-slate-900 dark:text-slate-100 leading-none">28</span>
+<span class="flex items-center text-xs text-amber-600 bg-amber-50 dark:bg-amber-500/10 px-2 py-1 rounded-full">
+                                        Active
+                                    </span>
+</div>
+</div>
+<div class="mt-4 flex items-center gap-2 text-slate-400 text-xs">
+ Avg. time: 4.2h
+                            </div>
+</div>
+<div class="p-6 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-xl shadow-sm relative overflow-hidden group">
+<div class="flex flex-col gap-1">
+<span class="text-sm font-medium text-slate-500 uppercase tracking-wider">Completed Today</span>
+<div class="flex items-center gap-3">
+<span class="text-3xl text-slate-900 dark:text-slate-100 leading-none">42</span>
+<span class="flex items-center text-xs text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-1 rounded-full">
+ 8%
+                                    </span>
+</div>
+</div>
+<div class="mt-4 flex items-center gap-2 text-slate-400 text-xs">
+ Goal: 50
+                            </div>
+</div>
+<div class="p-6 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-xl shadow-sm relative overflow-hidden group">
+<div class="flex flex-col gap-1">
+<span class="text-sm font-medium text-slate-500 uppercase tracking-wider">Region Health</span>
+<div class="flex items-center gap-3">
+<span class="text-3xl text-slate-900 dark:text-slate-100 leading-none">94%</span>
+<div class="w-16 h-2 bg-slate-100 dark:bg-white/10 rounded-full overflow-hidden">
+<div class="h-full bg-primary" style="width: 94%"></div>
+</div>
+</div>
+</div>
+<div class="mt-4 flex items-center gap-2 text-slate-400 text-xs">
+ All systems operational
+                            </div>
+</div>
+</div>
+</section>
+<!-- Data Table Section -->
+<section class="bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden shadow-sm">
+<div class="p-6 border-b border-slate-200 dark:border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div class="flex items-center gap-3">
+<h3 class="text-lg dark:text-slate-100 text-[#f26a21]">Requests in Parallel Review</h3>
+<span class="px-2 py-0.5 bg-primary/10 text-primary text-xs rounded-full">Active Status</span>
+</div>
+<button class="px-4 py-1.5 bg-[#f26a21] text-white text-xs rounded-lg shadow-sm hover:bg-[#f26a21]/90 transition-colors mr-2">Approve All</button><div class="flex flex-wrap items-center gap-2">
+<div class="flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-white/5 rounded-lg border border-slate-200 dark:border-white/5 text-xs cursor-pointer hover:bg-slate-200 transition-colors">
+ Filter Region
+                            </div>
+<div class="flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-white/5 rounded-lg border border-slate-200 dark:border-white/5 text-xs cursor-pointer hover:bg-slate-200 transition-colors">
+ Priority
+                            </div>
+<div class="flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-white/5 rounded-lg border border-slate-200 dark:border-white/5 text-xs cursor-pointer hover:bg-slate-200 transition-colors">
+ Newest First
+                            </div>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left">
+<thead class="bg-slate-50 dark:bg-white/5 text-slate-500 text-xs uppercase font-bold tracking-wider">
+<tr class="text-slate-900">
+<th class="px-6 py-4"><input class="rounded border-slate-300 text-primary focus:ring-primary" type="checkbox"/></th>
+<th class="px-6 py-4">Request ID</th>
+<th class="px-6 py-4">Client name</th>
+<th class="px-6 py-4">Vehicle number</th>
+<th class="px-6 py-4">service type</th>
+<th class="px-6 py-4">date</th>
+<th class="px-6 py-4">service cost</th>
+<th class="px-6 py-4 text-right">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-slate-100 dark:divide-white/5">
+<!-- Row 1 -->
+<tr class="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+<td class="px-6 py-4"><input class="rounded border-slate-300 text-primary focus:ring-primary" type="checkbox"/></td>
+<td class="px-6 py-4 font-mono text-sm">#GPS-9821</td>
+<td class="px-6 py-4">
+<div class="flex flex-col">
+<span class="text-sm">Quantum Core V2</span>
+<span class="text-xs text-slate-400">Data Center - Zone 4</span>
+</div>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<div class="size-6 rounded-full bg-slate-200 bg-cover" data-alt="Requester avatar" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDPy34CauJ3vDdjXTS5lUxs3nXCJVWSgI67Wj0FwdukLEfXvoa5qpVf5YE98n_qe1-Oom4UcGmhVcSthJvx3yr5ZdbK2e3V4wlUo4DOeid56dVbbDI2YAMbho_FCDkngJf_xXvZufR52MvVz5Gr8UBw9Ek-yGEAOBph1NrbEE51FZxicqesP4pirH0j-RkGrf-jrYx8c3A1TAy3-LHDD3y40UPCAsR4U-bQORgcCMayTFAMh8CV4-CS3U9qYvVupg9tVNabGFTmoJI')"></div>
+<span class="text-sm">Sarah Jenkins</span>
+</div>
+</td>
+<td class="px-6 py-4">
+<div class="flex -space-x-2">
+<div class="size-6 rounded-full border-2 border-white dark:border-background-dark bg-blue-100 text-[10px] flex items-center justify-center">JD</div>
+<div class="size-6 rounded-full border-2 border-white dark:border-background-dark bg-emerald-100 text-[10px] flex items-center justify-center">MK</div>
+<div class="size-6 rounded-full border-2 border-white dark:border-background-dark bg-slate-100 text-[10px] flex items-center justify-center">+2</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="px-2 py-1 bg-red-100 dark:bg-red-500/10 text-red-600 text-[10px] rounded-full uppercase">High</span>
+</td>
+<td class="px-6 py-4">
+<div class="flex flex-col gap-1">
+<span class="text-xs font-medium">18h remaining</span>
+<div class="w-24 h-1.5 bg-slate-100 dark:bg-white/10 rounded-full">
+<div class="h-full bg-primary" style="width: 75%"></div>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 text-right">
+<div class="flex items-center justify-end gap-2"><button class="px-3 py-1.5 border border-[#f26a21] text-[#f26a21] text-xs rounded-lg hover:bg-[#f26a21]/5 transition-colors">VIEW</button>
+<button class="px-3 py-1.5 bg-primary text-white text-xs rounded-lg hover:bg-primary/90 transition-colors">Approve</button>
+<button class="px-3 py-1.5 bg-red-500/10 text-red-600 text-xs rounded-lg hover:bg-red-500/20 transition-colors">Reject</button>
+</div>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+<td class="px-6 py-4"><input class="rounded border-slate-300 text-primary focus:ring-primary" type="checkbox"/></td>
+<td class="px-6 py-4 font-mono text-sm">#GPS-9824</td>
+<td class="px-6 py-4">
+<div class="flex flex-col">
+<span class="text-sm">Mobile Ops Tower</span>
+<span class="text-xs text-slate-400">Rural Deployment - NV</span>
+</div>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<div class="size-6 rounded-full bg-slate-200 bg-cover" data-alt="Requester avatar" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAqOSmfA1WvN0AN5YgK9I1FUtFjH2FXBPVbCJ3gXwrMYljY7Z4WOU04lvsHw1m9y6Zmfiimcba2H80xj8vz9yawxjwTVBADCQy15VuxTMvdmoiGJ_TPkzaOn5yHF23keJbx1M7nVW-xz0_LkuVKDt8mq2xCyJe1b0UeG4_Gg-yEejg7nkBXXlsKN_DbS0fV9HJi8fwPpF7nPIBxiHeVcsMuD_K60RLRouZG1Ks6jcGAOIM7g2sQ8F5VJpbv17oCI37d1Xc4nKsYbQI')"></div>
+<span class="text-sm">Tom Harrison</span>
+</div>
+</td>
+<td class="px-6 py-4">
+<div class="flex -space-x-2">
+<div class="size-6 rounded-full border-2 border-white dark:border-background-dark bg-amber-100 text-[10px] flex items-center justify-center">AL</div>
+<div class="size-6 rounded-full border-2 border-white dark:border-background-dark bg-purple-100 text-[10px] flex items-center justify-center">RW</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="px-2 py-1 bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-400 text-[10px] rounded-full uppercase">Normal</span>
+</td>
+<td class="px-6 py-4">
+<div class="flex flex-col gap-1">
+<span class="text-xs font-medium">2d remaining</span>
+<div class="w-24 h-1.5 bg-slate-100 dark:bg-white/10 rounded-full">
+<div class="h-full bg-primary" style="width: 20%"></div>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 text-right">
+<div class="flex items-center justify-end gap-2"><button class="px-3 py-1.5 border border-[#f26a21] text-[#f26a21] text-xs rounded-lg hover:bg-[#f26a21]/5 transition-colors">VIEW</button>
+<button class="px-3 py-1.5 bg-primary text-white text-xs rounded-lg hover:bg-primary/90 transition-colors">Approve</button>
+<button class="px-3 py-1.5 bg-red-500/10 text-red-600 text-xs rounded-lg hover:bg-red-500/20 transition-colors">Reject</button>
+</div>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+<td class="px-6 py-4"><input class="rounded border-slate-300 text-primary focus:ring-primary" type="checkbox"/></td>
+<td class="px-6 py-4 font-mono text-sm">#GPS-9833</td>
+<td class="px-6 py-4">
+<div class="flex flex-col">
+<span class="text-sm">Global Sat-Link III</span>
+<span class="text-xs text-slate-400">Orbital Assets - LEO</span>
+</div>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<div class="size-6 rounded-full bg-slate-200 bg-cover" data-alt="Requester avatar" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDNc8F4jVPuKfnQLhfnRb7q0yIsLnjd5XIBbk5AeiD_GN_DrQjKYR2w-wdNjJm-kebyNw9-koYHNbbetFVzBTVikBe9_KqHMDDau9KOXbzTtjmYoiC-Xk2Sl4Og7X-eych53_gI8Z-h2Madh8Kw7iCmDLH2Cix9vqwrxbgbOL5y3ZPrSkuWjJQjT7Ivvf9poyeKvwt294TOBIpCyE9hoanbioOSXpEt0myLWFXRzwdOJvZgUFTh77ugmaxxE1fngNL5eWzKGfSua6c')"></div>
+<span class="text-sm">Elena Rodriguez</span>
+</div>
+</td>
+<td class="px-6 py-4">
+<div class="flex -space-x-2">
+<div class="size-6 rounded-full border-2 border-white dark:border-background-dark bg-indigo-100 text-[10px] flex items-center justify-center">ER</div>
+<div class="size-6 rounded-full border-2 border-white dark:border-background-dark bg-rose-100 text-[10px] flex items-center justify-center">TY</div>
+<div class="size-6 rounded-full border-2 border-white dark:border-background-dark bg-slate-100 text-[10px] flex items-center justify-center">PV</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="px-2 py-1 bg-amber-100 dark:bg-amber-500/10 text-amber-600 text-[10px] rounded-full uppercase">Urgent</span>
+</td>
+<td class="px-6 py-4">
+<div class="flex flex-col gap-1">
+<span class="text-xs font-medium">4h remaining</span>
+<div class="w-24 h-1.5 bg-slate-100 dark:bg-white/10 rounded-full">
+<div class="h-full bg-primary" style="width: 90%"></div>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 text-right">
+<div class="flex items-center justify-end gap-2"><button class="px-3 py-1.5 border border-[#f26a21] text-[#f26a21] text-xs rounded-lg hover:bg-[#f26a21]/5 transition-colors">VIEW</button>
+<button class="px-3 py-1.5 bg-primary text-white text-xs rounded-lg hover:bg-primary/90 transition-colors">Approve</button>
+<button class="px-3 py-1.5 bg-red-500/10 text-red-600 text-xs rounded-lg hover:bg-red-500/20 transition-colors">Reject</button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="p-4 border-t border-slate-200 dark:border-white/10 flex items-center justify-between">
+<span class="text-xs text-slate-500 font-medium">Showing 3 of 28 parallel reviews</span>
+<div class="flex items-center gap-1">
+<button class="p-1 rounded hover:bg-slate-100 dark:hover:bg-white/10 text-slate-400">
+</button>
+<button class="px-2 py-1 text-xs bg-primary text-white rounded">1</button>
+<button class="px-2 py-1 text-xs text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10 rounded">2</button>
+<button class="px-2 py-1 text-xs text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10 rounded">3</button>
+<button class="p-1 rounded hover:bg-slate-100 dark:hover:bg-white/10 text-slate-400">
+</button>
+</div>
+</div>
+</section>
+<!-- Additional Context / Map Preview -->
+</div>
+</main>
+</div>
+</body></html>

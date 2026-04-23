@@ -17,13 +17,6 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// Mock database for FO data (replace with actual database calls)
-const mockFODatabase = {
-  'VH001': { foEmail: 'operator@test.com', foName: 'John Doe' },
-  'VH002': { foEmail: 'operator@test.com', foName: 'Jane Smith' },
-  'VH003': { foEmail: 'operator@test.com', foName: 'Mike Johnson' },
-};
-
 // ============================================================
 // HELPER FUNCTIONS
 // ============================================================
@@ -286,46 +279,6 @@ function buildVendorNotificationHTML(data) {
 
   const installationStatusTable = buildInstallationStatusTable(vehicles, ltpocDetails, vendorName);
 
-  const notifyBaseUrl = 'http://localhost:3001/notify-fo';
-
-  // "Notify FO" button for each vehicle
-  let notifyButtons = '';
-  if (vehicles && vehicles.length > 0) {
-    notifyButtons = vehicles
-      .filter((v) => safeValue(v.vehicleNumber))
-      .map((v) => {
-        const matchingLtpoc = ltpocDetails?.find((d) => d.vehicleNumber === v.vehicleNumber);
-        const safeLtpocName = safeValue(matchingLtpoc?.ltpocName);
-        const safeLtpocPhone = safeValue(matchingLtpoc?.ltpocPhone);
-        const safeLtpocEmail = safeValue(matchingLtpoc?.ltpocEmail);
-        const installationDate = new Date().toLocaleDateString();
-
-        const notifyParams = new URLSearchParams({
-          vehicleId: safeValue(v.vehicleNumber),
-          requestId: safeValue(requestId),
-          vendorName: safeValue(vendorName),
-          clientName: safeValue(clientName),
-          city: safeValue(city),
-          serviceType: safeValue(serviceType),
-          vehicleAvailabilityLocation: safeValue(vehicleAvailabilityLocation),
-          vehicleAvailableTime: safeValue(vehicleAvailableTime),
-          installationDate,
-          ltpocName: safeLtpocName,
-          ltpocPhone: safeLtpocPhone,
-          ltpocEmail: safeLtpocEmail,
-        }).toString();
-
-        const notifyUrl = `${notifyBaseUrl}?${notifyParams}`;
-
-        return `
-      <a href="${notifyUrl}" style="display: inline-block; margin: 10px 5px 0; padding: 12px 28px; background: linear-gradient(135deg, #28a745 0%, #20873a 100%); color: white; text-decoration: none; border-radius: 6px; font-weight: 700; font-size: 14px; box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);">
-        Notify FO
-      </a>
-    `;
-      })
-      .join('');
-  }
-
   return `
     <div style="font-family: Arial, sans-serif; max-width: 900px; margin: 0 auto; background: #ffffff;">
       <div style="background: linear-gradient(135deg, #1f6f78 0%, #15545a 100%); padding: 30px; text-align: center;">
@@ -340,11 +293,6 @@ function buildVendorNotificationHTML(data) {
         ${ltpocDetailsSection}
 
         ${installationStatusTable}
-
-        <div style="margin: 20px 0; text-align: center;">
-          ${notifyButtons}
-        </div>
-
         <div style="margin: 30px 0; padding: 20px; background: #fff3cd; border-left: 5px solid #ffc107; border-radius: 4px;">
           <p style="margin: 0; color: #856404; font-size: 14px;"><strong>⚠️ Action Required:</strong> Please acknowledge receipt and confirm service availability.</p>
         </div>
@@ -395,67 +343,6 @@ app.post('/sendOTP', async (req, res) => {
   } catch (error) {
     console.error('❌ Error sending OTP:', error);
     res.status(500).json({ error: 'Failed to send OTP', details: error.message });
-  }
-});
-
-// Send Vendor Notification endpoint
-app.post('/sendVendorNotification', async (req, res) => {
-  try {
-    const { requestId, vendorName, clientName, city, vehicles, ltpocDetails, serviceType, vehicleAvailabilityLocation, vehicleAvailableTime } = req.body;
-
-    // Validation
-    if (!requestId || !vendorName) {
-      return res.status(400).json({
-        error: 'Request ID and vendor name are required.',
-      });
-    }
-
-    const vendorEmails = {
-      FleetX: 'anupgogeri4@gmail.com',
-      WheelsEye: 'anupgogeri3@gmail.com',
-    };
-
-    const vendorEmail = vendorEmails[vendorName];
-    if (!vendorEmail) {
-      return res.status(400).json({
-        error: `Invalid vendor name: "${vendorName}". Available: ${Object.keys(vendorEmails).join(', ')}`,
-      });
-    }
-
-    console.log(`📧 Vendor notification request received:`, {
-      requestId,
-      vendorName,
-      clientName,
-      city,
-      vehicleCount: vehicles?.length,
-      ltpocCount: ltpocDetails?.length,
-    });
-
-    const emailHtml = buildVendorNotificationHTML({
-      requestId,
-      vendorName,
-      clientName,
-      city,
-      vehicles: vehicles || [],
-      ltpocDetails: ltpocDetails || [],
-      serviceType,
-      vehicleAvailabilityLocation,
-      vehicleAvailableTime,
-    });
-
-    await transporter.sendMail({
-      from: 'anupgogeri4@gmail.com',
-      to: vendorEmail,
-      subject: `GPS Installation Service Request - ${requestId}`,
-      html: emailHtml,
-      text: `GPS Installation Request - ${requestId}\n\nDear ${vendorName} Team,\n\nPlease acknowledge receipt and confirm service availability for the attached request.\n\nGPS Installation Automation System`,
-    });
-
-    console.log('✅ Vendor notification email sent successfully!');
-    res.json({ success: true, message: 'Vendor notification sent.' });
-  } catch (error) {
-    console.error('❌ Error sending vendor notification:', error);
-    res.status(500).json({ error: 'Failed to send notification', details: error.message });
   }
 });
 
@@ -625,199 +512,37 @@ app.post('/sendFoBulkNotification', async (req, res) => {
   }
 });
 
-// Development Firestore mock - tracks FO notifications sent
-const sentNotificationsTracker = new Set();
-
-const notifyFoHandler = async (req, res) => {
-  try {
-    const payload = req.method === 'GET' ? req.query : req.body;
-    const { vehicleId, requestId } = payload;
-
-    // Validation
-    if (!vehicleId) {
-      return res.status(400).json({ error: 'Vehicle ID is required.' });
-    }
-
-    console.log(`📧 Processing FO notification for vehicle: ${vehicleId}...`);
-
-    // Check if notification already sent to prevent duplicates (dev tracking)
-    const notificationKey = `${requestId}-${vehicleId}`;
-    if (sentNotificationsTracker.has(notificationKey)) {
-      console.log(`⚠️ Notification already sent for vehicle ${vehicleId}. Skipping duplicate.`);
-      if (req.method === 'GET') {
-        return res.status(200).send(`
-          <div style="font-family: Arial, sans-serif; padding: 24px;">
-            <h2 style="margin: 0 0 12px;">Notify FO</h2>
-            <p style="margin: 0; color: #ff9800; font-weight: bold;">✓ Notification already sent for vehicle <strong>${safeValue(vehicleId)}</strong>.</p>
-            <p style="margin: 12px 0 0; color: #666; font-size: 14px;">This prevents duplicate emails to the Field Operator.</p>
-          </div>
-        `);
-      }
-      return res.status(200).json({
-        success: true,
-        message: 'Notification already sent for this vehicle.',
-        vehicleId,
-        alreadySent: true,
-      });
-    }
-
-    // Fetch FO data from database (mocked here)
-    const foData = mockFODatabase[vehicleId];
-
-    if (!foData) {
-      return res.status(404).json({
-        error: `FO data not found for vehicle ID: ${vehicleId}. No FO email on record.`,
-      });
-    }
-
-    if (!foData.foEmail) {
-      return res.status(400).json({
-        error: `FO email not available for vehicle: ${vehicleId}. Cannot send notification.`,
-      });
-    }
-
-    const installationDate = new Date().toLocaleDateString();
-
-    const requestDetailsTable = buildRequestDetailsTable({
-      requestId: payload.requestId,
-      serviceType: payload.serviceType,
-      city: payload.city,
-      clientName: payload.clientName,
-      vehicleAvailabilityLocation: payload.vehicleAvailabilityLocation,
-      vehicleAvailableTime: payload.vehicleAvailableTime,
-    });
-
-    const safeVehicleId = safeValue(vehicleId);
-    const safeVendorName = safeValue(payload.vendorName);
-    const safeLtpocName = safeValue(payload.ltpocName);
-    const safeLtpocPhone = safeValue(payload.ltpocPhone);
-    const safeLtpocEmail = safeValue(payload.ltpocEmail);
-    const safeInstallationDate = safeValue(payload.installationDate) || installationDate;
-
-    let foDetailsHTML = `
-      <table style="width: 100%; border-collapse: collapse; background: white; box-shadow: 0 2px 12px rgba(0,0,0,0.08); margin-bottom: 30px; border-radius: 8px; overflow: hidden;">
-        <tr style="background: #667eea; color: white;">
-          <th colspan="2" style="padding: 16px; text-align: left; font-size: 15px; font-weight: 700; letter-spacing: 0.05em;">INSTALLATION DETAILS</th>
-        </tr>
-        <tr style="background: #f8f9fa;">
-          <td style="padding: 14px; border-bottom: 1px solid #e0e0e0; font-weight: 600; width: 35%;">Vehicle Number</td>
-          <td style="padding: 14px; border-bottom: 1px solid #e0e0e0;"><strong>${safeVehicleId || '-'}</strong></td>
-        </tr>
-        <tr>
-          <td style="padding: 14px; border-bottom: 1px solid #e0e0e0; font-weight: 600;">Vendor Name</td>
-          <td style="padding: 14px; border-bottom: 1px solid #e0e0e0;"><strong>${safeVendorName || '-'}</strong></td>
-        </tr>
-        <tr style="background: #f8f9fa;">
-          <td style="padding: 14px; border-bottom: 1px solid #e0e0e0; font-weight: 600;">Installation Date</td>
-          <td style="padding: 14px; border-bottom: 1px solid #e0e0e0;"><strong>${safeInstallationDate}</strong></td>
-        </tr>
-    `;
-
-    if (safeLtpocName) {
-      foDetailsHTML += `
-        <tr>
-          <td style="padding: 14px; border-bottom: 1px solid #e0e0e0; font-weight: 600;">LTPOC Name</td>
-          <td style="padding: 14px; border-bottom: 1px solid #e0e0e0;"><strong>${safeLtpocName}</strong></td>
-        </tr>`;
-    }
-
-    if (safeLtpocPhone) {
-      foDetailsHTML += `
-        <tr style="background: #f8f9fa;">
-          <td style="padding: 14px; border-bottom: 1px solid #e0e0e0; font-weight: 600;">LTPOC Phone</td>
-          <td style="padding: 14px; border-bottom: 1px solid #e0e0e0;"><strong>${safeLtpocPhone}</strong></td>
-        </tr>`;
-    }
-
-    if (safeLtpocEmail) {
-      foDetailsHTML += `
-        <tr>
-          <td style="padding: 14px; border-bottom: 1px solid #e0e0e0; font-weight: 600;">LTPOC Email</td>
-          <td style="padding: 14px; border-bottom: 1px solid #e0e0e0;"><strong>${safeLtpocEmail}</strong></td>
-        </tr>`;
-    }
-
-    foDetailsHTML += `</table>`;
-
-    await transporter.sendMail({
-      from: 'anupgogeri4@gmail.com',
-      to: foData.foEmail,
-      subject: `GPS Service Initiated – ${safeValue(vehicleId)}`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 900px; margin: 0 auto; background: #ffffff;">
-          <div style="background: linear-gradient(135deg, #28a745 0%, #20873a 100%); padding: 30px; text-align: center;">
-            <h2 style="color: #ffffff; margin: 0; font-size: 28px; letter-spacing: -0.02em;">✓ GPS Service Initiated</h2>
-          </div>
-          
-          <div style="padding: 40px; background: #fafbfc;">
-            <p style="font-size: 16px; color: #333; margin-bottom: 30px;">Dear <strong>${safeValue(foData.foName) || 'Field Operator'}</strong>,</p>
-            
-            <div style="padding: 20px; background: #d4edda; border-left: 5px solid #28a745; border-radius: 4px; margin-bottom: 30px;">
-              <p style="margin: 0; color: #155724; font-size: 15px;"><strong>✓ GPS Services Initiated</strong></p>
-              <p style="margin: 8px 0 0; color: #155724; font-size: 14px;">GPS services initiated for vehicle <strong>${safeValue(vehicleId)}</strong>.</p>
-            </div>
-
-            ${requestDetailsTable}
-
-            ${foDetailsHTML}
-
-            <div style="margin: 30px 0; padding: 20px; background: #d1ecf1; border-left: 5px solid #17a2b8; border-radius: 4px;">
-              <p style="margin: 0; color: #0c5460; font-size: 14px;"><strong>ℹ️ Next Steps:</strong> Please verify the installation and update the request status in the system.</p>
-            </div>
-          </div>
-          
-          <div style="padding: 20px; background: #f8f9fa; color: #6c757d; font-size: 12px; text-align: center; border-top: 1px solid #dee2e6;">
-            <p style="margin: 0;">GPS Installation Automation System</p>
-          </div>
-        </div>
-      `,
-      text: `GPS Service Initiated\n\nDear Field Operator,\n\nGPS services initiated for vehicle ${vehicleId}.\n\nInstallation Date: ${installationDate}\n\nPlease verify the installation and update the request status in the system.\n\nGPS Installation Automation System`,
-    });
-
-    console.log(`✅ FO notification email sent to ${foData.foEmail}!`);
-    
-    // Record that notification was sent for this vehicle to prevent future duplicates
-    sentNotificationsTracker.add(notificationKey);
-    console.log(`✅ Recorded notification for vehicle ${vehicleId} to tracker.`);
-
-    if (req.method === 'GET') {
-      res.status(200).send(`
-        <div style="font-family: Arial, sans-serif; padding: 24px;">
-          <h2 style="margin: 0 0 12px;">Notify FO</h2>
-          <p style="margin: 0;">Notification sent successfully for vehicle <strong>${safeVehicleId}</strong>.</p>
-        </div>
-      `);
-      return;
-    }
-
-    res.status(200).json({
-      success: true,
-      message: 'Field Operator notification sent successfully.',
-      foEmail: foData.foEmail,
-      vehicleId,
-    });
-  } catch (error) {
-    console.error('❌ Error sending FO notification:', error);
-    res.status(500).json({ error: 'Failed to send FO notification', details: error.message });
-  }
-};
-
-// Notify FO endpoint - POST + GET
-app.post('/notify-fo', notifyFoHandler);
-app.get('/notify-fo', notifyFoHandler);
-
 // ============================================================
 // SERVER START
 // ============================================================
 
-const PORT = 3001;
-app.listen(PORT, () => {
-  console.log(`\n🚀 Development Email Server running on http://localhost:${PORT}`);
-  console.log(`📧 Ready to send emails from: anupgogeri4@gmail.com\n`);
-  console.log('📝 Endpoints:');
-  console.log('   POST /sendOTP - Send OTP verification email');
-  console.log('   POST /sendVendorNotification - Send GPS installation request to vendor');
-  console.log('   POST /sendVendorBulkNotification - Send consolidated vendor email');
-  console.log('   POST /sendFoBulkNotification - Send consolidated FO email');
-  console.log('   POST /notify-fo - Send installation confirmation to Field Operator\n');
-});
+const BASE_PORT = Number(process.env.DEV_EMAIL_PORT || process.env.PORT || 3001);
+const MAX_PORT_ATTEMPTS = 10;
+
+const startServer = (port, attempt = 0) => {
+  const server = app.listen(port, () => {
+    console.log(`\n🚀 Development Email Server running on http://localhost:${port}`);
+    if (port !== BASE_PORT) {
+      console.log(`⚠️ Port ${BASE_PORT} was busy. Using fallback port ${port}.`);
+    }
+    console.log(`📧 Ready to send emails from: anupgogeri4@gmail.com\n`);
+    console.log('📝 Endpoints:');
+    console.log('   POST /sendOTP - Send OTP verification email');
+    console.log('   POST /sendVendorBulkNotification - Send consolidated vendor email');
+    console.log('   POST /sendFoBulkNotification - Send consolidated FO email');
+    console.log('');
+  });
+
+  server.on('error', (error) => {
+    if (error.code === 'EADDRINUSE' && attempt < MAX_PORT_ATTEMPTS) {
+      const nextPort = port + 1;
+      console.warn(`⚠️ Port ${port} is in use. Retrying on ${nextPort}...`);
+      startServer(nextPort, attempt + 1);
+      return;
+    }
+
+    throw error;
+  });
+};
+
+startServer(BASE_PORT);

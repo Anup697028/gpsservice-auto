@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Vendor Coordinator History - GPS Installation Automation System</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f26a21",
+                        "background-light": "#f8f6f5",
+                        "background-dark": "#221610",
+                    },
+                    fontFamily: {
+                        "display": ["Inter"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 antialiased">
+<div class="flex h-screen overflow-hidden">
+<!-- Sidebar -->
+<aside class="w-64 border-r border-primary/10 bg-white dark:bg-slate-900 flex flex-col shrink-0">
+<div class="p-6 border-b border-primary/10">
+<h1 class="text-primary text-sm font-bold uppercase tracking-wider">Coordinator Console</h1>
+</div>
+<nav class="flex-1 p-4 space-y-1">
+<a class="flex items-center px-4 py-3 text-slate-600 dark:text-slate-400 hover:bg-primary/5 hover:text-primary transition-colors rounded-lg" href="#">
+<span class="text-sm font-medium">Dashboard</span>
+</a>
+<a class="flex items-center px-4 py-3 bg-primary text-white shadow-md shadow-primary/20 rounded-lg" href="#">
+<span class="text-sm font-medium">History</span>
+</a>
+<a class="flex items-center px-4 py-3 text-slate-600 dark:text-slate-400 hover:bg-primary/5 hover:text-primary transition-colors rounded-lg" href="#">
+<span class="text-sm font-medium">Profile</span>
+</a>
+</nav>
+<div class="p-4 border-t border-primary/10">
+<div class="flex items-center gap-3 px-4 py-2">
+<div class="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xs">VC</div>
+<div class="flex flex-col">
+<span class="text-xs font-semibold">Alex Rivera</span>
+<span class="text-[10px] text-slate-500 uppercase">Vendor Coordinator</span>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 flex flex-col overflow-hidden">
+<!-- Header -->
+<header class="h-16 border-b border-primary/10 bg-white dark:bg-slate-900 flex items-center justify-between px-8 shrink-0">
+<h2 class="text-primary text-lg font-bold">Vendor Coordinator History</h2>
+<div class="flex items-center gap-4">
+<span class="text-xs text-slate-500 italic">GPS Installation Automation System v2.4</span>
+</div>
+</header>
+<!-- Scrollable Area -->
+<div class="flex-1 overflow-y-auto p-8">
+<!-- Action Bar -->
+<div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+<div class="flex items-center gap-2">
+<select class="text-xs border-primary/20 rounded-lg bg-white dark:bg-slate-800 focus:ring-primary focus:border-primary py-2 px-3">
+<option>All Statuses</option>
+<option>Completed</option>
+<option>Cancelled</option>
+<option>Archived</option>
+</select>
+<select class="text-xs border-primary/20 rounded-lg bg-white dark:bg-slate-800 focus:ring-primary focus:border-primary py-2 px-3">
+<option>Past 30 Days</option>
+<option>Past 90 Days</option>
+<option>All Time</option>
+</select>
+</div>
+<button class="bg-primary hover:bg-primary/90 text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors shadow-sm">
+                        Download CSV
+                    </button>
+</div>
+<!-- History Table -->
+<div class="bg-white dark:bg-slate-900 border border-primary/10 rounded-xl overflow-hidden shadow-sm">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-primary/5 border-b border-primary/10">
+<th class="px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-primary">Request ID</th>
+<th class="px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-primary">Status</th>
+<th class="px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-primary">Client</th>
+<th class="px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-primary">Service Type</th>
+<th class="px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-primary text-center">Vehicles</th>
+<th class="px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-primary">Completion Date</th>
+<th class="px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-primary text-right">Action</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-primary/5">
+<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+<td class="px-6 py-4 text-sm font-medium text-slate-900 dark:text-slate-100">REQ-8821</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700 uppercase">Completed</span>
+</td>
+<td class="px-6 py-4 text-sm text-slate-900 dark:text-slate-100">Global Logistics Corp</td>
+<td class="px-6 py-4 text-sm text-slate-900 dark:text-slate-100">New Installation</td>
+<td class="px-6 py-4 text-sm text-slate-900 dark:text-slate-100 text-center">12</td>
+<td class="px-6 py-4 text-sm text-slate-900 dark:text-slate-100">Oct 24, 2023</td>
+<td class="px-6 py-4 text-right">
+<button class="text-primary hover:text-primary/70 text-xs font-bold uppercase tracking-tighter">View</button>
+</td>
+</tr>
+<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+<td class="px-6 py-4 text-sm font-medium text-slate-900 dark:text-slate-100">REQ-8794</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 uppercase">Archived</span>
+</td>
+<td class="px-6 py-4 text-sm text-slate-900 dark:text-slate-100">Metro Transit Authority</td>
+<td class="px-6 py-4 text-sm text-slate-900 dark:text-slate-100">De-installation</td>
+<td class="px-6 py-4 text-sm text-slate-900 dark:text-slate-100 text-center">5</td>
+<td class="px-6 py-4 text-sm text-slate-900 dark:text-slate-100">Oct 20, 2023</td>
+<td class="px-6 py-4 text-right">
+<button class="text-primary hover:text-primary/70 text-xs font-bold uppercase tracking-tighter">View</button>
+</td>
+</tr>
+<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+<td class="px-6 py-4 text-sm font-medium text-slate-900 dark:text-slate-100">REQ-8752</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700 uppercase">Cancelled</span>
+</td>
+<td class="px-6 py-4 text-sm text-slate-900 dark:text-slate-100">Summit Supply Co</td>
+<td class="px-6 py-4 text-sm text-slate-900 dark:text-slate-100">Maintenance Check</td>
+<td class="px-6 py-4 text-sm text-slate-900 dark:text-slate-100 text-center">22</td>
+<td class="px-6 py-4 text-sm text-slate-900 dark:text-slate-100">Oct 18, 2023</td>
+<td class="px-6 py-4 text-right">
+<button class="text-primary hover:text-primary/70 text-xs font-bold uppercase tracking-tighter">View</button>
+</td>
+</tr>
+<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+<td class="px-6 py-4 text-sm font-medium text-slate-900 dark:text-slate-100">REQ-8710</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700 uppercase">Completed</span>
+</td>
+<td class="px-6 py-4 text-sm text-slate-900 dark:text-slate-100">Evergreen Distribution</td>
+<td class="px-6 py-4 text-sm text-slate-900 dark:text-slate-100">Upgrade</td>
+<td class="px-6 py-4 text-sm text-slate-900 dark:text-slate-100 text-center">8</td>
+<td class="px-6 py-4 text-sm text-slate-900 dark:text-slate-100">Oct 15, 2023</td>
+<td class="px-6 py-4 text-right">
+<button class="text-primary hover:text-primary/70 text-xs font-bold uppercase tracking-tighter">View</button>
+</td>
+</tr>
+<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+<td class="px-6 py-4 text-sm font-medium text-slate-900 dark:text-slate-100">REQ-8699</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700 uppercase">Completed</span>
+</td>
+<td class="px-6 py-4 text-sm text-slate-900 dark:text-slate-100">Rapid Delivery LLC</td>
+<td class="px-6 py-4 text-sm text-slate-900 dark:text-slate-100">New Installation</td>
+<td class="px-6 py-4 text-sm text-slate-900 dark:text-slate-100 text-center">15</td>
+<td class="px-6 py-4 text-sm text-slate-900 dark:text-slate-100">Oct 12, 2023</td>
+<td class="px-6 py-4 text-right">
+<button class="text-primary hover:text-primary/70 text-xs font-bold uppercase tracking-tighter">View</button>
+</td>
+</tr>
+<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+<td class="px-6 py-4 text-sm font-medium text-slate-900 dark:text-slate-100">REQ-8641</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700 uppercase">Completed</span>
+</td>
+<td class="px-6 py-4 text-sm text-slate-900 dark:text-slate-100">City Fleet Services</td>
+<td class="px-6 py-4 text-sm text-slate-900 dark:text-slate-100">Maintenance Check</td>
+<td class="px-6 py-4 text-sm text-slate-900 dark:text-slate-100 text-center">3</td>
+<td class="px-6 py-4 text-sm text-slate-900 dark:text-slate-100">Oct 10, 2023</td>
+<td class="px-6 py-4 text-right">
+<button class="text-primary hover:text-primary/70 text-xs font-bold uppercase tracking-tighter">View</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Pagination -->
+<div class="px-6 py-4 bg-primary/5 flex items-center justify-between border-t border-primary/10">
+<span class="text-xs text-slate-500 italic">Showing 1 to 6 of 142 completed requests</span>
+<div class="flex gap-1">
+<button class="px-3 py-1 text-xs border border-primary/20 rounded bg-white hover:bg-primary/5">Prev</button>
+<button class="px-3 py-1 text-xs border border-primary/20 rounded bg-white hover:bg-primary/5 font-bold text-primary">1</button>
+<button class="px-3 py-1 text-xs border border-primary/20 rounded bg-white hover:bg-primary/5">2</button>
+<button class="px-3 py-1 text-xs border border-primary/20 rounded bg-white hover:bg-primary/5">3</button>
+<button class="px-3 py-1 text-xs border border-primary/20 rounded bg-white hover:bg-primary/5">Next</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

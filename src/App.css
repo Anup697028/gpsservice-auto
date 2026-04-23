@@ -8,6 +8,7 @@
 @import './styles/auditLog.css';
 @import './styles/requestCard.css';
 @import './styles/dashboard.css';
+@import './styles/theme-consistency.css';
 
 #root {
   width: 100%;

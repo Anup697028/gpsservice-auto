@@ -1,279 +1,377 @@
-import {
-  addDoc,
-  arrayUnion,
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  onSnapshot,
-  query,
-  orderBy,
-  limit,
-  runTransaction,
-  startAfter,
-  serverTimestamp,
-  setDoc,
-  updateDoc,
-  where,
-  writeBatch,
-} from 'firebase/firestore';
-import { db } from './firebase';
+import { auth } from './firebase';
+import { functionsService } from './functionsService';
+import { fetchWithApiFallback } from './apiBase';
 import {
   WORKFLOW_ACTIONS,
-  REQUEST_STATUSES,
   type RequestRecord,
   type UserRef,
-  type WorkflowAction,
-  type WorkflowOptionalData,
 } from '../types/workflow';
 import { updateRequestState } from './workflowService';
 
-const REQUESTS_COLLECTION = 'requests';
+const REQUEST_POLL_INTERVAL_MS = 4000;
+const LEGACY_RH_FALLBACK_EMAIL = 'anupgogeri697@gmail.com';
 
-const mapSnapshot = (snapshot: { docs: Array<{ id: string; data: () => unknown }> }) =>
-  snapshot.docs.map((item) => ({ id: item.id, ...(item.data() as Record<string, unknown>) }));
+const normalizeEmail = (value: unknown) => String(value || '').trim().toLowerCase();
 
-const normalizePhoneForStorage = (value: unknown) => String(value || '').replace(/\D/g, '').slice(0, 10);
-
-const ensureStrictPhoneIfPresent = (value: unknown, fieldName: string) => {
-  const raw = String(value || '').trim();
-  if (!raw) {
-    return raw;
+const toMillis = (value: unknown) => {
+  if (!value) {
+    return 0;
   }
 
-  const normalized = normalizePhoneForStorage(raw);
-  if (!/^\d{10}$/.test(normalized)) {
-    throw new Error(`${fieldName} must be exactly 10 digits.`);
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
   }
 
-  return normalized;
+  const maybeDate = (value as { toDate?: () => Date })?.toDate?.();
+  if (maybeDate instanceof Date) {
+    return maybeDate.getTime();
+  }
+
+  const parsed = new Date(String(value)).getTime();
+  return Number.isFinite(parsed) ? parsed : 0;
 };
 
-// Fix #3: centralize phone cleanup/validation so all write paths (including import/CSV flows) store only strict 10-digit numbers.
-const sanitizeRequestPhoneFields = (requestData: RequestRecord): RequestRecord => {
-  const sanitizedVehicles = (requestData.vehicles ?? []).map((vehicle) => ({
-    ...vehicle,
-    ltpocPhone: ensureStrictPhoneIfPresent(vehicle?.ltpocPhone, `LTPOC phone for vehicle ${vehicle?.vehicleNumber || ''}`),
-  }));
+const sortRequestsByCreatedAtDesc = <T extends RequestRecord & { id?: string }>(requests: T[]) =>
+  [...requests].sort(
+    (left, right) => toMillis((right as Record<string, unknown>).createdAt) - toMillis((left as Record<string, unknown>).createdAt)
+  );
 
-  const sanitizedLtpocDetails = (requestData.ltpocDetails ?? []).map((ltpoc) => ({
-    ...ltpoc,
-    ltpocPhone: ensureStrictPhoneIfPresent(ltpoc?.ltpocPhone, `LTPOC phone for vehicle ${ltpoc?.vehicleNumber || ''}`),
-  }));
-
+const getAuthHeaders = async (includeJson = true) => {
+  const token = auth.currentUser ? await auth.currentUser.getIdToken(true) : '';
   return {
-    ...requestData,
-    vehicles: sanitizedVehicles,
-    ltpocDetails: sanitizedLtpocDetails,
+    ...(includeJson ? { 'Content-Type': 'application/json' } : {}),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 };
 
-const updateRequestWithWorkflow = async (
-  requestId: string,
-  action: WorkflowAction,
-  user: UserRef,
-  optionalData?: WorkflowOptionalData
-) => {
-  const docRef = doc(db, REQUESTS_COLLECTION, requestId);
-  const currentDoc = await getDoc(docRef);
+const apiRequest = async (path: string, init: RequestInit = {}) => {
+  const headers = await getAuthHeaders(!((init.method || 'GET').toUpperCase() === 'GET'));
+  const response = await fetchWithApiFallback(
+    path,
+    {
+      ...init,
+      headers: {
+        ...headers,
+        ...(init.headers || {}),
+      },
+    },
+    import.meta.env.VITE_API_BASE_URL,
+    import.meta.env.VITE_FUNCTIONS_BASE_URL,
+  );
 
-  if (!currentDoc.exists()) {
-    throw new Error('Request not found.');
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const message = String((payload as { details?: unknown; error?: unknown })?.details || (payload as { error?: unknown })?.error || `Request failed (${response.status})`);
+    throw new Error(message);
   }
 
-  const currentData = currentDoc.data() as RequestRecord;
-  const { updates, historyEntry } = updateRequestState(currentData, action, user, optionalData);
+  return payload;
+};
 
-  await updateDoc(docRef, {
-    ...updates,
-    updatedAt: serverTimestamp(),
-    history: arrayUnion(historyEntry),
+const normalizeRequestRecord = (row: Record<string, unknown>): RequestRecord => {
+  const requestId = String(row.id || row.requestId || '').trim();
+  const requestSequence = Number(row.requestSequence || row.numericId || 0);
+  const requestDisplayId = String(row.requestDisplayId || row.requestId || requestId || '').trim();
+  const vehicles = Array.isArray(row.vehicles) ? (row.vehicles as Array<Record<string, unknown>>) : [];
+  const ltpocDetails = Array.isArray(row.ltpocDetails)
+    ? (row.ltpocDetails as Array<Record<string, unknown>>)
+    : Array.isArray(row.lptocDetails)
+    ? (row.lptocDetails as Array<Record<string, unknown>>)
+    : [];
+
+  const normalizedVehicles: NonNullable<RequestRecord['vehicles']> = vehicles.map((vehicle) => {
+    const ltpocName = String(vehicle.ltpocName ?? vehicle.lptocName ?? '').trim();
+    const ltpocPhone = String(vehicle.ltpocPhone ?? vehicle.lptocPhone ?? '').trim();
+    const vehicleNumber = String(vehicle.vehicleNumber || '').trim();
+
+    return {
+      ...vehicle,
+      vehicleNumber,
+      ltpocName,
+      ltpocPhone,
+    } as NonNullable<RequestRecord['vehicles']>[number];
   });
+
+  const normalizedLtpocDetails: NonNullable<RequestRecord['ltpocDetails']> = ltpocDetails.map((entry) => ({
+    ...entry,
+    vehicleNumber: String(entry.vehicleNumber || '').trim(),
+    ltpocName: String(entry.ltpocName ?? entry.lptocName ?? '').trim(),
+    ltpocPhone: String(entry.ltpocPhone ?? entry.lptocPhone ?? '').trim(),
+  }));
+
+  return {
+    ...(row as RequestRecord),
+    id: requestId,
+    requestSequence: Number.isFinite(requestSequence) ? requestSequence : 0,
+    requestDisplayId: requestDisplayId || requestId,
+    vehicles: normalizedVehicles,
+    ltpocDetails: normalizedLtpocDetails,
+  };
+};
+
+const fetchAllRequests = async (): Promise<RequestRecord[]> => {
+  const payload = await apiRequest('/requests?limit=10000', { method: 'GET' });
+  const rows = Array.isArray((payload as { requests?: unknown[] }).requests)
+    ? ((payload as { requests: unknown[] }).requests ?? [])
+    : [];
+
+  const normalized = rows
+    .map((row) => (row && typeof row === 'object' ? normalizeRequestRecord(row as Record<string, unknown>) : null))
+    .filter((row): row is RequestRecord => row !== null);
+
+  return sortRequestsByCreatedAtDesc(normalized);
+};
+
+const createPollingSubscription = (
+  loader: () => Promise<RequestRecord[]>,
+  callback: (requests: RequestRecord[]) => void,
+  onError?: (error: Error) => void
+) => {
+  let active = true;
+  let timer: number | null = null;
+
+  const run = async () => {
+    try {
+      const rows = await loader();
+      if (active) {
+        callback(rows);
+      }
+    } catch (error) {
+      if (active && onError) {
+        onError(error as Error);
+      }
+    } finally {
+      if (active && typeof window !== 'undefined') {
+        timer = window.setTimeout(run, REQUEST_POLL_INTERVAL_MS);
+      }
+    }
+  };
+
+  void run();
+
+  return () => {
+    active = false;
+    if (timer !== null && typeof window !== 'undefined') {
+      window.clearTimeout(timer);
+    }
+  };
+};
+
+const isFoScopedRequest = (request: RequestRecord, uid: string, normalizedEmail: string, rawEmail: string) => {
+  const requestAny = request as Record<string, unknown>;
+  const createdBy = String(requestAny.createdBy || '').trim();
+  const createdByEmail = normalizeEmail(requestAny.createdByEmail);
+  const createdByEmailRaw = String(requestAny.createdByEmail || '').trim();
+  const assignedFoId = String(requestAny.assignedFoId || '').trim();
+  const foId = String(requestAny.foId || '').trim();
+
+  const foEmail = normalizeEmail(requestAny.foEmail);
+  const assignedFoEmail = normalizeEmail(requestAny.assignedFoEmail);
+  const foEmailRaw = String(requestAny.foEmail || '').trim();
+  const assignedFoEmailRaw = String(requestAny.assignedFoEmail || '').trim();
+
+  if (uid && (createdBy === uid || assignedFoId === uid || foId === uid)) {
+    return true;
+  }
+
+  if (normalizedEmail && createdByEmail === normalizedEmail) {
+    return true;
+  }
+
+  if (normalizedEmail && (foEmail === normalizedEmail || assignedFoEmail === normalizedEmail)) {
+    return true;
+  }
+
+  if (rawEmail && createdByEmailRaw === rawEmail) {
+    return true;
+  }
+
+  if (rawEmail && (foEmailRaw === rawEmail || assignedFoEmailRaw === rawEmail)) {
+    return true;
+  }
+
+  return false;
+};
+
+const isRhScopedRequest = (request: RequestRecord, uid: string, normalizedEmail: string, rawEmail: string) => {
+  const requestAny = request as Record<string, unknown>;
+  const assignedRhUserId = String(requestAny.assignedRhUserId || '').trim();
+  const assignedRhEmail = normalizeEmail(requestAny.assignedRhEmail);
+  const assignedRhEmailRaw = String(requestAny.assignedRhEmail || '').trim();
+
+  if (uid && assignedRhUserId === uid) {
+    return true;
+  }
+
+  if (normalizedEmail && assignedRhEmail === normalizedEmail) {
+    return true;
+  }
+
+  if (rawEmail && assignedRhEmailRaw === rawEmail) {
+    return true;
+  }
+
+  if (normalizedEmail === LEGACY_RH_FALLBACK_EMAIL && !assignedRhUserId && !assignedRhEmail) {
+    return true;
+  }
+
+  return false;
+};
+
+const requestApiCreate = async (payload: Record<string, unknown>) => {
+  const response = await apiRequest('/requests', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+
+  return response as {
+    success?: boolean;
+    request?: Record<string, unknown>;
+    requestId?: string;
+  };
 };
 
 export const requestService = {
-  generateRequestId: () => {
-    const docRef = doc(collection(db, REQUESTS_COLLECTION));
-    return docRef.id;
-  },
-  createRequest: async (
-    requestData: RequestRecord,
-    user: UserRef,
-    requestId?: string
-  ) => {
-    try {
-      const sanitizedRequestData = sanitizeRequestPhoneFields(requestData);
-      console.log('createRequest called with:', { user, requestId, isBulkRequest: requestData.isBulkRequest });
-      
-      // Pass isBulkRequest flag so workflow service can set correct initial status
-      const { updates, historyEntry } = updateRequestState(
-        null, 
-        WORKFLOW_ACTIONS.CREATE, 
-        user,
-        { isBulkRequest: sanitizedRequestData.isBulkRequest }
-      );
+  generateRequestId: () => `TEMP-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
 
-      if (requestId) {
-        console.log('Using provided requestId:', requestId);
-        const docRef = doc(db, REQUESTS_COLLECTION, requestId);
-        const docData = {
-          id: docRef.id,
-          ...sanitizedRequestData,
-          ...updates,
-          createdBy: user.id,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-          history: [historyEntry] as any,
-        };
-        console.log('Writing document:', docData);
-        await setDoc(docRef, docData);
-        return docRef.id;
-      }
+  createRequest: async (requestData: RequestRecord, user: UserRef, requestId?: string) => {
+    const { updates, historyEntry } = updateRequestState(
+      null,
+      WORKFLOW_ACTIONS.CREATE,
+      user,
+      { isBulkRequest: requestData.isBulkRequest }
+    );
 
-      const docData = {
-        id: requestId ?? undefined,
-        ...sanitizedRequestData,
-        ...updates,
-        createdBy: user.id,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        history: [historyEntry] as any,
-      };
-      console.log('Adding document:', docData);
-      const docRef = await addDoc(collection(db, REQUESTS_COLLECTION), docData);
+    const payload = {
+      ...requestData,
+      ...updates,
+      id: requestId || null,
+      createdBy: user.id,
+      createdByEmail: user.email ?? null,
+      history: [historyEntry],
+    };
 
-      if (!requestId) {
-        await updateDoc(docRef, { id: docRef.id });
-      }
-
-      return docRef.id;
-    } catch (error) {
-      console.error('Error in createRequest:', {
-        error,
-        errorCode: (error as any)?.code,
-        errorMessage: (error as any)?.message,
-        user,
-      });
-      throw error;
-    }
+    const created = await requestApiCreate(payload as Record<string, unknown>);
+    return String(created?.request?.id || created?.requestId || requestId || '');
   },
 
   getRequestById: async (requestId: string) => {
-    const docRef = doc(db, REQUESTS_COLLECTION, requestId);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      return { id: docSnap.id, ...(docSnap.data() as Record<string, unknown>) };
+    const payload = await apiRequest(`/requests/${encodeURIComponent(String(requestId || '').trim())}`, { method: 'GET' });
+    if (!payload || typeof payload !== 'object') {
+      return null;
     }
-    return null;
+    return normalizeRequestRecord(payload as Record<string, unknown>);
   },
 
-  getAllRequests: async () => {
-    const q = query(collection(db, REQUESTS_COLLECTION));
-    const querySnapshot = await getDocs(q);
-    return mapSnapshot(querySnapshot);
-  },
+  getAllRequests: async () => fetchAllRequests(),
 
-  getRequestsByStatus: async (status: string) => {
-    const q = query(collection(db, REQUESTS_COLLECTION), where('status', '==', status));
-    const querySnapshot = await getDocs(q);
-    return mapSnapshot(querySnapshot);
-  },
+  subscribeToAllRequests: (callback: (requests: RequestRecord[]) => void, onError?: (error: Error) => void) =>
+    createPollingSubscription(fetchAllRequests, callback, onError),
 
-  subscribeToRequests: (status: string, callback: (requests: RequestRecord[]) => void) => {
-    const q = query(collection(db, REQUESTS_COLLECTION), where('status', '==', status));
-    return onSnapshot(q, (snapshot) => {
-      callback(mapSnapshot(snapshot) as RequestRecord[]);
+  subscribeToUserRequests: (
+    userId: string,
+    callback: (requests: RequestRecord[]) => void,
+    onError?: (error: Error) => void,
+    userEmail?: string | null | undefined
+  ) =>
+    createPollingSubscription(
+      async () => {
+        const all = await fetchAllRequests();
+        const uid = String(userId || '').trim();
+        const rawEmail = String(userEmail || auth.currentUser?.email || '').trim();
+        const normalizedEmail = normalizeEmail(rawEmail);
+
+        return all.filter((request) => {
+          const requestAny = request as Record<string, unknown>;
+          const createdBy = String(requestAny.createdBy || '').trim();
+          const createdByEmail = normalizeEmail(requestAny.createdByEmail);
+          const assignedFoId = String(requestAny.assignedFoId || '').trim();
+          const assignedFoEmail = normalizeEmail(requestAny.assignedFoEmail);
+
+          if (uid && (createdBy === uid || assignedFoId === uid)) {
+            return true;
+          }
+
+          if (normalizedEmail && (createdByEmail === normalizedEmail || assignedFoEmail === normalizedEmail)) {
+            return true;
+          }
+
+          if (rawEmail && String(requestAny.createdByEmail || '').trim().toLowerCase() === rawEmail.toLowerCase()) {
+            return true;
+          }
+
+          return false;
+        });
+      },
+      callback,
+      onError
+    ),
+
+  subscribeToFoRequests: (
+    userId: string,
+    email: string | null | undefined,
+    callback: (requests: RequestRecord[]) => void,
+    onError?: (error: Error) => void
+  ) =>
+    createPollingSubscription(
+      async () => {
+        const all = await fetchAllRequests();
+        const uid = String(userId || '').trim();
+        const rawEmail = String(email || '').trim();
+        const normalizedEmail = normalizeEmail(email);
+
+        return all.filter((request) => isFoScopedRequest(request, uid, normalizedEmail, rawEmail));
+      },
+      callback,
+      onError
+    ),
+
+  subscribeToRhRequests: (
+    userId: string,
+    email: string | null | undefined,
+    callback: (requests: RequestRecord[]) => void,
+    onError?: (error: Error) => void
+  ) =>
+    createPollingSubscription(
+      async () => {
+        const all = await fetchAllRequests();
+        const uid = String(userId || '').trim();
+        const rawEmail = String(email || '').trim();
+        const normalizedEmail = normalizeEmail(email);
+
+        return all.filter((request) => isRhScopedRequest(request, uid, normalizedEmail, rawEmail));
+      },
+      callback,
+      onError
+    ),
+
+  approveRequest: async (requestId: string, _user: UserRef, role: 'RH' | 'PAYMENT') => {
+    if (role === 'RH') {
+      await functionsService.rhApproveRequest({ requestId });
+      return;
+    }
+
+    await apiRequest('/paymentApproveRequest', {
+      method: 'POST',
+      body: JSON.stringify({ requestId }),
     });
-  },
-
-  subscribeToUserRequests: (userId: string, callback: (requests: RequestRecord[]) => void) => {
-    const q = query(collection(db, REQUESTS_COLLECTION), where('createdBy', '==', userId));
-    return onSnapshot(q, (snapshot) => {
-      callback(mapSnapshot(snapshot) as RequestRecord[]);
-    });
-  },
-
-  subscribeToAllRequests: (callback: (requests: RequestRecord[]) => void) => {
-    const q = query(collection(db, REQUESTS_COLLECTION), orderBy('createdAt', 'desc'));
-    return onSnapshot(q, (snapshot) => {
-      callback(mapSnapshot(snapshot) as RequestRecord[]);
-    });
-  },
-
-  getPaginatedRequests: async (
-    status: string,
-    pageSize: number,
-    lastCreatedAt?: unknown
-  ) => {
-    const baseQuery = query(
-      collection(db, REQUESTS_COLLECTION),
-      where('status', '==', status),
-      orderBy('createdAt', 'desc'),
-      limit(pageSize)
-    );
-
-    const pagedQuery = lastCreatedAt
-      ? query(
-          collection(db, REQUESTS_COLLECTION),
-          where('status', '==', status),
-          orderBy('createdAt', 'desc'),
-          startAfter(lastCreatedAt),
-          limit(pageSize)
-        )
-      : baseQuery;
-
-    const snapshot = await getDocs(pagedQuery);
-    const requests = mapSnapshot(snapshot) as RequestRecord[];
-    const lastDoc = snapshot.docs[snapshot.docs.length - 1];
-    return { requests, lastCreatedAt: lastDoc?.data()?.createdAt ?? null };
-  },
-
-  getRhPendingRequests: async () => {
-    // RH can review all FO requests regardless of approval state
-    const q = query(
-      collection(db, REQUESTS_COLLECTION),
-      orderBy('createdAt', 'desc')
-    );
-    const querySnapshot = await getDocs(q);
-    return mapSnapshot(querySnapshot);
-  },
-
-  getVendorApprovedRequests: async (
-    vendorApprovedBy: string,
-    fromDate: Date,
-    toDate: Date
-  ) => {
-    const q = query(
-      collection(db, REQUESTS_COLLECTION),
-      where('vendorApprovedBy', '==', vendorApprovedBy)
-    );
-    const querySnapshot = await getDocs(q);
-    return mapSnapshot(querySnapshot);
-  },
-
-  getPaymentPendingRequests: async () => {
-    const q = query(
-      collection(db, REQUESTS_COLLECTION),
-      where('status', '==', REQUEST_STATUSES.PARALLEL_REVIEW),
-      where('paymentApproval', '==', false)
-    );
-    const querySnapshot = await getDocs(q);
-    return mapSnapshot(querySnapshot);
-  },
-
-  approveRequest: async (requestId: string, user: UserRef, role: 'RH' | 'PAYMENT') => {
-    const action = role === 'RH' ? WORKFLOW_ACTIONS.RH_APPROVE : WORKFLOW_ACTIONS.PAYMENT_APPROVE;
-    await updateRequestWithWorkflow(requestId, action, user);
   },
 
   rejectRequest: async (
     requestId: string,
-    user: UserRef,
+    _user: UserRef,
     role: 'RH' | 'PAYMENT',
     rejectionReason: string
   ) => {
-    const action = role === 'RH' ? WORKFLOW_ACTIONS.RH_REJECT : WORKFLOW_ACTIONS.PAYMENT_REJECT;
-    await updateRequestWithWorkflow(requestId, action, user, { rejectionReason });
+    if (role === 'RH') {
+      await functionsService.rhRejectRequest({ requestId, rejectionReason });
+      return;
+    }
+
+    await apiRequest('/paymentRejectRequest', {
+      method: 'POST',
+      body: JSON.stringify({ requestId, rejectionReason }),
+    });
   },
 
   editAndApprove: async (
@@ -282,565 +380,50 @@ export const requestService = {
     user: UserRef,
     role: 'RH' | 'PAYMENT'
   ) => {
-    const action =
-      role === 'RH'
-        ? WORKFLOW_ACTIONS.RH_EDIT_APPROVE
-        : WORKFLOW_ACTIONS.PAYMENT_EDIT_APPROVE;
-    await updateRequestWithWorkflow(requestId, action, user, { updates: updatedData });
-  },
-
-  bulkApprove: async (requestIds: string[], user: UserRef) => {
-    let updatedCount = 0;
-
-    for (const requestId of requestIds) {
-      const docRef = doc(db, REQUESTS_COLLECTION, requestId);
-      const snapshot = await getDoc(docRef);
-
-      if (!snapshot.exists()) {
-        continue;
-      }
-
-      const currentData = snapshot.data() as RequestRecord;
-      
-      // Skip if already approved or action already taken
-      if (currentData.rhApproval || currentData.rhActionTaken) {
-        continue;
-      }
-
-      const status = currentData.status ?? null;
-      
-      // RH compliance approval can be applied before/after payment/vendor progression.
-      if (
-        status !== REQUEST_STATUSES.PARALLEL_REVIEW &&
-        status !== REQUEST_STATUSES.VENDOR_COORDINATION &&
-        status !== REQUEST_STATUSES.COMPLETED
-      ) {
-        console.warn(
-          `Skipping request ${docRef.id}: status is ${status}, must be PARALLEL_REVIEW, VENDOR_COORDINATION, or COMPLETED`
-        );
-        continue;
-      }
-
-      try {
-        await updateRequestWithWorkflow(docRef.id, WORKFLOW_ACTIONS.RH_APPROVE, user);
-        updatedCount += 1;
-      } catch (error) {
-        console.warn(`Skipping request ${docRef.id}: unable to approve in bulk`, error);
-      }
-    }
-
-    return updatedCount;
-  },
-
-  notifyVendor: async (requestId: string, vendorName: string, user: UserRef) => {
-    await updateRequestWithWorkflow(requestId, WORKFLOW_ACTIONS.VENDOR_NOTIFY, user, {
-      vendorName,
-      notes: `Vendor ${vendorName} notified`,
-    });
-
-    const docRef = doc(db, REQUESTS_COLLECTION, requestId);
-    await updateDoc(docRef, {
-      vendorName,
-      vendorNotified: true,
-      vendorActionTaken: true,
-      approvedByVendor: true,
-      notifiedAt: serverTimestamp(),
-      notificationTimestamp: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
-  },
-
-  bulkVendorApprove: async (requestIds: string[], user: UserRef) => {
-    const batch = writeBatch(db);
-    let updatedCount = 0;
-
-    const docs = await Promise.all(
-      requestIds.map(async (requestId) => {
-        const docRef = doc(db, REQUESTS_COLLECTION, requestId);
-        const snapshot = await getDoc(docRef);
-        return { docRef, snapshot };
-      })
-    );
-
-    docs.forEach(({ docRef, snapshot }) => {
-      if (!snapshot.exists()) {
-        return;
-      }
-
-      const currentData = snapshot.data() as RequestRecord;
-      
-      // Skip if already approved by vendor or action already taken
-      if (currentData.approvedByVendor || currentData.vendorActionTaken) {
-        return;
-      }
-
-      // Create history entry for vendor approval
-      const historyEntry = {
-        userId: user.id,
-        userName: user.email || user.name || 'Vendor',
-        role: user.role,
-        action: 'VENDOR_APPROVE' as const,
-        statusFrom: currentData.status || null,
-        statusTo: currentData.status || null,
-        timestamp: new Date(),
-        notes: 'Vendor bulk approval',
-      };
-
-      batch.update(docRef, {
-        approvedByVendor: true,
-        vendorActionTaken: true,
-        vendorApprovedAt: serverTimestamp(),
-        vendorApprovedBy: user.id,
-        updatedAt: serverTimestamp(),
-        history: arrayUnion(historyEntry),
+    if (role === 'RH') {
+      await apiRequest('/rhEditApproveRequest', {
+        method: 'POST',
+        body: JSON.stringify({ requestId, updates: updatedData }),
       });
-      updatedCount += 1;
-    });
-
-    if (updatedCount > 0) {
-      await batch.commit();
+      return;
     }
-    return updatedCount;
+
+    await requestService.approveRequest(requestId, user, 'PAYMENT');
   },
 
-  // ========== BULK REQUEST WORKFLOW FUNCTIONS ==========
-
-  /**
-   * RH approves a BULK request (FO_CREATED → PAYMENT_PENDING)
-   * - Validates request is bulk and at FO_CREATED status
-   * - Updates rhStatus and transitions to PAYMENT_PENDING
-   */
-  approveBulkRequest: async (requestId: string, user: UserRef) => {
-    await updateRequestWithWorkflow(requestId, WORKFLOW_ACTIONS.RH_BULK_APPROVE, user);
+  approveBulkRequest: async (requestId: string, _user: UserRef) => {
+    await functionsService.rhApproveRequest({ requestId });
   },
 
-  /**
-   * RH rejects a BULK request
-   * - Validates request is bulk and at FO_CREATED status
-   * - Sets rejection reason and status to HALTED
-   */
-  rejectBulkRequest: async (
-    requestId: string,
-    rejectionReason: string,
-    user: UserRef
-  ) => {
-    await updateRequestWithWorkflow(requestId, WORKFLOW_ACTIONS.RH_BULK_REJECT, user, {
-      rejectionReason,
-    });
-  },
-
-  /**
-   * Payment approves a BULK request (PAYMENT_PENDING → PAYMENT_APPROVED)
-   * - Validates request is bulk and at PAYMENT_PENDING status
-   * - Updates paymentStatus and transitions to PAYMENT_APPROVED
-   */
-  approveBulkPayment: async (requestId: string, user: UserRef) => {
-    await updateRequestWithWorkflow(requestId, WORKFLOW_ACTIONS.PAYMENT_BULK_APPROVE, user);
-  },
-
-  /**
-   * Payment rejects a BULK request
-   * - Validates request is bulk and at PAYMENT_PENDING status
-   * - Sets rejection reason and status to HALTED
-   */
-  rejectBulkPayment: async (
-    requestId: string,
-    rejectionReason: string,
-    user: UserRef
-  ) => {
-    await updateRequestWithWorkflow(requestId, WORKFLOW_ACTIONS.PAYMENT_BULK_REJECT, user, {
-      rejectionReason,
-    });
+  rejectBulkRequest: async (requestId: string, rejectionReason: string, _user: UserRef) => {
+    await functionsService.rhRejectRequest({ requestId, rejectionReason });
   },
 
   updateBulkPaymentVehicles: async (
     requestId: string,
     vehicleIndexes: number[],
     action: 'APPROVE' | 'REJECT',
-    user: UserRef,
-    rejectionReason?: string
+    _user: UserRef,
+    rejectionReason?: string,
+    _existingData?: RequestRecord
   ) => {
-    if (!user?.id || user.role !== 'PAYMENT') {
-      throw new Error('Only PAYMENT role can perform this action.');
-    }
-
-    const uniqueIndexes = Array.from(new Set(vehicleIndexes)).filter(
-      (index) => Number.isInteger(index) && index >= 0
-    );
-
-    if (uniqueIndexes.length === 0) {
-      throw new Error('Select at least one eligible vehicle.');
-    }
-
-    const normalizedRejectionReason = String(rejectionReason || '').trim();
-    if (action === 'REJECT' && !normalizedRejectionReason) {
-      throw new Error('Rejection reason is required.');
-    }
-
-    const docRef = doc(db, REQUESTS_COLLECTION, requestId);
-
-    await runTransaction(db, async (transaction) => {
-      const snapshot = await transaction.get(docRef);
-      if (!snapshot.exists()) {
-        throw new Error('Request not found.');
-      }
-
-      const currentData = snapshot.data() as RequestRecord;
-      if (!currentData.isBulkRequest) {
-        throw new Error('This action is only available for bulk requests.');
-      }
-
-      if (currentData.status !== REQUEST_STATUSES.FO_CREATED) {
-        throw new Error('Bulk payment action is only allowed when request status is FO_CREATED.');
-      }
-
-      const rawVehicles = currentData.vehicles as unknown;
-      const vehicles = Array.isArray(rawVehicles)
-        ? (rawVehicles as Array<Record<string, unknown>>)
-        : rawVehicles && typeof rawVehicles === 'object'
-          ? Object.keys(rawVehicles as Record<string, unknown>)
-              .sort((a, b) => Number(a) - Number(b))
-              .map((key) => (((rawVehicles as Record<string, unknown>)[key] ?? {}) as Record<string, unknown>))
-          : [];
-
-      if (vehicles.length === 0) {
-        throw new Error('No vehicles found in this bulk request.');
-      }
-
-      const selectedIndexes = uniqueIndexes.filter((index) => index < vehicles.length);
-      if (selectedIndexes.length === 0) {
-        throw new Error('Selected vehicles are invalid.');
-      }
-
-      for (const index of selectedIndexes) {
-        const vehicle = (vehicles[index] ?? {}) as Record<string, unknown>;
-        if (vehicle.paymentActionTaken === true) {
-          throw new Error(`Vehicle at position ${index + 1} is already processed.`);
-        }
-      }
-
-      const isIndexSelected = (index: number) => selectedIndexes.includes(index);
-      const updatedVehicles = vehicles.map((vehicle, index) => {
-        if (!isIndexSelected(index)) {
-          return vehicle;
-        }
-
-        if (action === 'APPROVE') {
-          return {
-            ...vehicle,
-            paymentActionTaken: true,
-            paymentApproved: true,
-            paymentRejected: false,
-            paymentApprovedAt: new Date(),
-            paymentRejectedAt: null,
-          };
-        }
-
-        return {
-          ...vehicle,
-          paymentActionTaken: true,
-          paymentApproved: false,
-          paymentRejected: true,
-          paymentRejectionReason: normalizedRejectionReason,
-          paymentRejectedAt: new Date(),
-          paymentApprovedAt: null,
-        };
-      });
-
-      const allVehiclesProcessed =
-        updatedVehicles.length > 0 &&
-        updatedVehicles.every((vehicle) => Boolean((vehicle as Record<string, unknown>)?.paymentActionTaken));
-
-      const approvedVehicleCount = updatedVehicles.filter(
-        (vehicle) => Boolean((vehicle as Record<string, unknown>)?.paymentApproved)
-      ).length;
-
-      const rejectedVehicleCount = updatedVehicles.filter(
-        (vehicle) => Boolean((vehicle as Record<string, unknown>)?.paymentRejected)
-      ).length;
-
-      let nextStatus: string = REQUEST_STATUSES.FO_CREATED;
-      if (allVehiclesProcessed && approvedVehicleCount > 0) {
-        nextStatus = REQUEST_STATUSES.PAYMENT_APPROVED;
-      } else if (allVehiclesProcessed && rejectedVehicleCount === updatedVehicles.length) {
-        nextStatus = REQUEST_STATUSES.HALTED;
-      }
-
-      const selectedVehicleNumbers = selectedIndexes
-        .map((index) => (vehicles[index] as Record<string, unknown>)?.vehicleNumber)
-        .filter(Boolean)
-        .join(', ');
-
-      const historyEntry = {
-        userId: user.id,
-        userName: user.name ?? user.email ?? null,
-        role: user.role,
-        action:
-          action === 'APPROVE'
-            ? WORKFLOW_ACTIONS.PAYMENT_BULK_APPROVE
-            : WORKFLOW_ACTIONS.PAYMENT_BULK_REJECT,
-        statusFrom: currentData.status ?? null,
-        statusTo: nextStatus,
-        timestamp: new Date(),
-        notes:
-          action === 'REJECT'
-            ? `Payment rejected ${selectedIndexes.length} vehicle(s): ${selectedVehicleNumbers || 'N/A'} | Reason: ${normalizedRejectionReason}`
-            : `Payment approved ${selectedIndexes.length} vehicle(s): ${selectedVehicleNumbers || 'N/A'}`,
-      };
-
-      const updates: Record<string, unknown> = {
-        status: nextStatus,
-        paymentStatus:
-          nextStatus === REQUEST_STATUSES.PAYMENT_APPROVED
-            ? 'APPROVED'
-            : nextStatus === REQUEST_STATUSES.HALTED
-              ? 'REJECTED'
-              : 'PENDING',
-        bothApproved:
-          nextStatus === REQUEST_STATUSES.PAYMENT_APPROVED && currentData.rhStatus === 'APPROVED',
-        vehicles: updatedVehicles,
-        updatedAt: serverTimestamp(),
-        history: arrayUnion(historyEntry),
-      };
-
-      transaction.update(docRef, updates);
+    await functionsService.applyBulkPaymentAction({
+      requestId,
+      vehicleIndexes,
+      action,
+      ...(action === 'REJECT' && rejectionReason ? { rejectionReason } : {}),
     });
   },
 
-  /**
-   * Vendor notifies on a BULK request (PAYMENT_APPROVED → SERVICE_INITIATED)
-   * - Validates request is bulk and at PAYMENT_APPROVED status
-   * - Vendor provides vendor name and request moves to SERVICE_INITIATED
-   */
-  notifyBulkVendor: async (requestId: string, vendorName: string, user: UserRef) => {
-    const docRef = doc(db, REQUESTS_COLLECTION, requestId);
-
-    await runTransaction(db, async (transaction) => {
-      const snapshot = await transaction.get(docRef);
-      if (!snapshot.exists()) {
-        throw new Error('Request not found.');
-      }
-
-      const currentData = snapshot.data() as RequestRecord;
-      if (!currentData.isBulkRequest) {
-        throw new Error('This action is only available for bulk requests.');
-      }
-
-      // Normalize vehicles array
-      const rawVehicles = currentData.vehicles as unknown;
-      const vehicles = Array.isArray(rawVehicles)
-        ? (rawVehicles as Array<Record<string, unknown>>)
-        : rawVehicles && typeof rawVehicles === 'object'
-          ? Object.keys(rawVehicles as Record<string, unknown>)
-              .sort((a, b) => Number(a) - Number(b))
-              .map((key) => (((rawVehicles as Record<string, unknown>)[key] ?? {}) as Record<string, unknown>))
-          : [];
-
-      // Set vendorNotified on each vehicle that has been payment-approved
-      const updatedVehicles = vehicles.map((vehicle) => {
-        // Only mark as vendorNotified if payment approved
-        if (vehicle.paymentApproved === true) {
-          return {
-            ...vehicle,
-            vendorNotified: true,
-            vendorName: vendorName,
-          };
-        }
-        return vehicle;
-      });
-
-      // Prepare workflow update
-      const { updates, historyEntry } = updateRequestState(
-        currentData,
-        WORKFLOW_ACTIONS.VENDOR_BULK_NOTIFY,
-        user,
-        { vendorName }
-      );
-
-      transaction.update(docRef, {
-        ...updates,
-        vehicles: updatedVehicles,
-        vendorNotified: true,
-        vendorName: vendorName,
-        notifiedAt: serverTimestamp(),
-        notificationTimestamp: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        history: arrayUnion(historyEntry),
-      });
-    });
+  removeBulkVehicle: async (requestId: string, vehicleNumber: string, _user: UserRef) => {
+    await functionsService.foRemoveBulkVehicle({ requestId, vehicleNumber });
   },
 
-  markFoNotified: async (requestIds: string[]) => {
-    if (requestIds.length === 0) {
-      return;
-    }
-
-    const batch = writeBatch(db);
-    requestIds.forEach((requestId) => {
-      const requestRef = doc(db, REQUESTS_COLLECTION, requestId);
-      batch.update(requestRef, {
-        foNotified: true,
-        notifiedAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
-    });
-
-    await batch.commit();
+  rhRejectSingleVehicle: async (requestId: string, vehicleNumber: string, _user: UserRef) => {
+    await functionsService.rhRejectSingleVehicle({ requestId, vehicleNumber });
   },
 
-  removeBulkVehicle: async (requestId: string, vehicleNumber: string, user: UserRef) => {
-    await updateRequestWithWorkflow(requestId, WORKFLOW_ACTIONS.FO_REMOVE_VEHICLE, user, {
-      updates: { vehicleNumber },
-      notes: `FO removed vehicle ${vehicleNumber} from bulk request`,
-    });
-  },
-
-  /**
-   * Bulk approve multiple BULK requests by RH
-    * - Filters to RH-actionable bulk requests
-   * - Applies RH_BULK_APPROVE to each
-   */
-  bulkApproveBulkRequests: async (requestIds: string[], user: UserRef) => {
-    let updatedCount = 0;
-
-    for (const requestId of requestIds) {
-      const docRef = doc(db, REQUESTS_COLLECTION, requestId);
-      const snapshot = await getDoc(docRef);
-
-      if (!snapshot.exists()) {
-        continue;
-      }
-
-      const currentData = snapshot.data() as RequestRecord;
-      
-      // Only approve BULK requests where RH has not actioned yet
-      if (!currentData.isBulkRequest) {
-        console.warn(`Skipping non-bulk request ${docRef.id}`);
-        continue;
-      }
-
-      const rhAlreadyActioned = currentData.rhStatus === 'APPROVED' || currentData.rhStatus === 'REJECTED';
-      const isRhActionableStatus =
-        currentData.status === REQUEST_STATUSES.FO_CREATED ||
-        currentData.status === REQUEST_STATUSES.PAYMENT_PENDING ||
-        currentData.status === REQUEST_STATUSES.PAYMENT_APPROVED ||
-        currentData.status === REQUEST_STATUSES.SERVICE_INITIATED ||
-        currentData.status === REQUEST_STATUSES.COMPLETED;
-
-      if (!isRhActionableStatus || rhAlreadyActioned) {
-        console.warn(
-          `Skipping request ${docRef.id}: status is ${currentData.status}, rhStatus is ${currentData.rhStatus}`
-        );
-        continue;
-      }
-
-      try {
-        await runTransaction(db, async (transaction) => {
-          const snapshot = await transaction.get(docRef);
-
-          if (!snapshot.exists()) {
-            return;
-          }
-
-          const currentData = snapshot.data() as RequestRecord;
-
-          // Update vehicle-level RH approval for bulk requests
-          const rawVehicles = currentData.vehicles as unknown;
-          const vehicles = Array.isArray(rawVehicles)
-            ? (rawVehicles as Array<Record<string, unknown>>)
-            : rawVehicles && typeof rawVehicles === 'object'
-              ? Object.keys(rawVehicles as Record<string, unknown>)
-                  .sort((a, b) => Number(a) - Number(b))
-                  .map((key) => (((rawVehicles as Record<string, unknown>)[key] ?? {}) as Record<string, unknown>))
-              : [];
-
-          const updatedVehicles = vehicles.map((vehicle) => ({
-            ...vehicle,
-            rhApproved: true,
-            rhApprovedAt: new Date(),
-          }));
-
-          const { updates, historyEntry } = updateRequestState(
-            currentData,
-            WORKFLOW_ACTIONS.RH_BULK_APPROVE,
-            user
-          );
-
-          transaction.update(docRef, {
-            ...updates,
-            vehicles: updatedVehicles,
-            updatedAt: serverTimestamp(),
-            history: arrayUnion(historyEntry),
-          });
-        });
-
-        updatedCount += 1;
-      } catch (error) {
-        console.warn(`Skipping bulk request ${docRef.id}: unable to approve in bulk`, error);
-      }
-    }
-
-    return updatedCount;
-  },
-
-  /**
-   * Bulk approve multiple BULK requests by Payment
-   * - Filters to only PAYMENT_PENDING bulk requests
-   * - Applies PAYMENT_BULK_APPROVE to each
-   */
-  bulkApproveBulkPayment: async (requestIds: string[], user: UserRef) => {
-    const batch = writeBatch(db);
-    let updatedCount = 0;
-
-    const docs = await Promise.all(
-      requestIds.map(async (requestId) => {
-        const docRef = doc(db, REQUESTS_COLLECTION, requestId);
-        const snapshot = await getDoc(docRef);
-        return { docRef, snapshot };
-      })
-    );
-
-    docs.forEach(({ docRef, snapshot }) => {
-      if (!snapshot.exists()) {
-        return;
-      }
-
-      const currentData = snapshot.data() as RequestRecord;
-      
-      // Only approve BULK requests at PAYMENT_PENDING
-      if (!currentData.isBulkRequest) {
-        console.warn(`Skipping non-bulk request ${docRef.id}`);
-        return;
-      }
-
-      if (currentData.status !== REQUEST_STATUSES.PAYMENT_PENDING) {
-        console.warn(
-          `Skipping request ${docRef.id}: status is ${currentData.status}, must be PAYMENT_PENDING`
-        );
-        return;
-      }
-
-      const { updates, historyEntry } = updateRequestState(
-        currentData,
-        WORKFLOW_ACTIONS.PAYMENT_BULK_APPROVE,
-        user
-      );
-
-      batch.update(docRef, {
-        ...updates,
-        updatedAt: serverTimestamp(),
-        history: arrayUnion(historyEntry),
-      });
-      updatedCount += 1;
-    });
-
-    if (updatedCount > 0) {
-      await batch.commit();
-    }
-    return updatedCount;
-  },
-
-  cancelRequest: async (requestId: string, user: UserRef) => {
-    await updateRequestWithWorkflow(requestId, WORKFLOW_ACTIONS.CANCEL, user);
+  cancelRequest: async (requestId: string, _user: UserRef) => {
+    await functionsService.foCancelRequest({ requestId });
   },
 };

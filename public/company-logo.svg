@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 120" role="img" aria-labelledby="title desc">
+  <title id="title">lets transport</title>
+  <desc id="desc">Lets Transport company logo</desc>
+
+  <g transform="translate(10 14)">
+    <text x="0" y="66" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="52" font-weight="700" fill="#1f2937">lets</text>
+
+    <g transform="translate(118 8)">
+      <polygon points="28,0 54,15 54,45 28,60 2,45 2,15" fill="#f97316"/>
+      <polygon points="28,8 46,18 46,42 28,52 10,42 10,18" fill="#fb923c"/>
+      <polygon points="28,18 38,24 38,36 28,42 18,36 18,24" fill="#ffffff"/>
+      <polygon points="28,0 54,15 46,18 28,8" fill="#ea580c"/>
+      <polygon points="54,15 54,45 46,42 46,18" fill="#dc2626"/>
+      <polygon points="2,15 10,18 10,42 2,45" fill="#c2410c"/>
+    </g>
+
+    <text x="198" y="66" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="52" font-weight="700" fill="#1f2937">transport</text>
+  </g>
+</svg>

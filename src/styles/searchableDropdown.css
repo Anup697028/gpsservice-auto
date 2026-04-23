@@ -70,6 +70,15 @@
   opacity: 0.5;
 }
 
+.searchable-dropdown-icon {
+  transform: rotate(0deg);
+  transition: transform 0.2s ease;
+}
+
+.searchable-dropdown-icon.open {
+  transform: rotate(180deg);
+}
+
 .searchable-dropdown-menu {
   position: absolute;
   top: calc(100% + 0.5rem);
@@ -167,4 +176,28 @@
 
 .searchable-dropdown-menu::-webkit-scrollbar-thumb:hover {
   background: var(--gray-400);
+}
+
+@media (max-width: 768px) {
+  .searchable-dropdown {
+    margin-bottom: 1rem;
+  }
+
+  .searchable-dropdown-input {
+    font-size: 0.9rem;
+    padding: 0.7rem 2.6rem 0.7rem 0.9rem;
+  }
+
+  .searchable-dropdown-menu {
+    max-height: 240px;
+  }
+
+  .searchable-dropdown-item {
+    padding: 0.72rem 0.9rem;
+    font-size: 0.9rem;
+  }
+
+  .searchable-dropdown-item:hover {
+    padding-left: 1rem;
+  }
 }

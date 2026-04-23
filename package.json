@@ -4,11 +4,13 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "node scripts/dev-stack.mjs",
+    "dev:frontend": "vite",
     "dev:email": "node dev-email-server.js",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "smoke:profiles": "node scripts/multi-role-profile-smoke.cjs"
   },
   "dependencies": {
     "cors": "^2.8.5",
@@ -27,10 +29,14 @@
     "@types/react-dom": "^19.2.3",
     "@types/xlsx": "^0.0.35",
     "@vitejs/plugin-react": "^5.1.1",
+    "autoprefixer": "^10.4.27",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.5.0",
+    "playwright": "^1.58.2",
+    "postcss": "^8.5.8",
+    "tailwindcss": "^3.4.17",
     "typescript": "^5.6.3",
     "vite": "^7.3.1"
   }

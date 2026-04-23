@@ -1,0 +1,357 @@
+/* Mobile table card-stacking for small screens */
+@media (max-width: 768px) {
+  table.mobile-stack-table {
+    width: 100% !important;
+    min-width: 0 !important;
+    table-layout: auto !important;
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+  }
+
+  table.mobile-stack-table thead {
+    display: none !important;
+  }
+
+  table.mobile-stack-table,
+  table.mobile-stack-table tbody,
+  table.mobile-stack-table tr,
+  table.mobile-stack-table td {
+    display: block;
+    width: 100% !important;
+  }
+
+  table.mobile-stack-table tbody tr {
+    margin-bottom: 0.65rem;
+    padding: 0.58rem 0.68rem;
+    border: 1px solid rgba(148, 163, 184, 0.32);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+  }
+
+  table.mobile-stack-table tbody tr td {
+    border: none;
+    border-bottom: 1px dashed rgba(148, 163, 184, 0.36);
+    padding: 0.42rem 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.62rem;
+    text-align: right;
+  }
+
+  table.mobile-stack-table tbody tr td:last-child {
+    border-bottom: none;
+  }
+
+  table.mobile-stack-table tbody tr td::before {
+    content: attr(data-label);
+    flex: 0 0 43%;
+    color: #64748b;
+    font-size: 0.66rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  table.mobile-stack-table tbody tr td[data-label='Select'] {
+    justify-content: flex-end;
+  }
+
+  table.mobile-stack-table tbody tr td[data-label='Select']::before {
+    margin-right: auto;
+  }
+}
+
+.app-theme-root,
+.stitch-app-shell {
+  font-family: var(--font-sans);
+  color: var(--gray-900);
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+.app-theme-root button,
+.stitch-app-shell button,
+.app-theme-root a,
+.stitch-app-shell a {
+  font-family: var(--font-sans);
+}
+
+.app-theme-root button,
+.stitch-app-shell button {
+  border-width: 1px;
+  border-style: solid;
+  border-color: transparent;
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  font-size: 0.8rem;
+  letter-spacing: 0.01em;
+  line-height: 1.25;
+  min-height: 34px;
+  padding: 0.44rem 0.68rem;
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s, transform 0.2s;
+}
+
+.app-theme-root input,
+.app-theme-root select,
+.app-theme-root textarea,
+.stitch-app-shell input,
+.stitch-app-shell select,
+.stitch-app-shell textarea {
+  font-size: 0.84rem;
+  line-height: 1.25;
+}
+
+.app-theme-root .dashboard-controls input,
+.app-theme-root .dashboard-controls select,
+.app-theme-root .dashboard-controls textarea,
+.stitch-app-shell .dashboard-controls input,
+.stitch-app-shell .dashboard-controls select,
+.stitch-app-shell .dashboard-controls textarea,
+.app-theme-root .rh-filter-card input,
+.app-theme-root .rh-filter-card select,
+.stitch-app-shell .rh-filter-card input,
+.stitch-app-shell .rh-filter-card select,
+.app-theme-root .search-box input,
+.stitch-app-shell .search-box input {
+  min-height: 34px;
+  padding: 0.48rem 0.68rem;
+}
+
+.app-theme-root button:focus-visible,
+.stitch-app-shell button:focus-visible {
+  outline: none;
+  box-shadow: var(--focus);
+}
+
+.app-theme-root button[class*='bg-primary'],
+.stitch-app-shell button[class*='bg-primary'],
+.app-theme-root .btn-primary,
+.stitch-app-shell .btn-primary,
+.app-theme-root .rh-primary-btn,
+.stitch-app-shell .rh-primary-btn {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #ffffff;
+}
+
+.app-theme-root button[class*='bg-primary']:hover:not(:disabled),
+.stitch-app-shell button[class*='bg-primary']:hover:not(:disabled),
+.app-theme-root .btn-primary:hover:not(:disabled),
+.stitch-app-shell .btn-primary:hover:not(:disabled),
+.app-theme-root .rh-primary-btn:hover:not(:disabled),
+.stitch-app-shell .rh-primary-btn:hover:not(:disabled) {
+  background: var(--primary-strong);
+  border-color: var(--primary-strong);
+}
+
+.app-theme-root button[class*='text-primary']:not([class*='bg-primary']),
+.stitch-app-shell button[class*='text-primary']:not([class*='bg-primary']),
+.app-theme-root .btn-secondary,
+.stitch-app-shell .btn-secondary,
+.app-theme-root .rh-secondary-btn,
+.stitch-app-shell .rh-secondary-btn,
+.app-theme-root .rh-page-btn,
+.stitch-app-shell .rh-page-btn,
+.app-theme-root .rh-row-btn.view,
+.stitch-app-shell .rh-row-btn.view {
+  background: var(--primary-soft);
+  border-color: var(--primary-soft-border);
+  color: var(--primary-strong);
+}
+
+.app-theme-root button[class*='text-primary']:not([class*='bg-primary']):hover:not(:disabled),
+.stitch-app-shell button[class*='text-primary']:not([class*='bg-primary']):hover:not(:disabled),
+.app-theme-root .btn-secondary:hover:not(:disabled),
+.stitch-app-shell .btn-secondary:hover:not(:disabled),
+.app-theme-root .rh-secondary-btn:hover:not(:disabled),
+.stitch-app-shell .rh-secondary-btn:hover:not(:disabled),
+.app-theme-root .rh-page-btn:hover:not(:disabled),
+.stitch-app-shell .rh-page-btn:hover:not(:disabled),
+.app-theme-root .rh-row-btn.view:hover:not(:disabled),
+.stitch-app-shell .rh-row-btn.view:hover:not(:disabled) {
+  background: #ffedd5;
+  border-color: #fdba74;
+  color: var(--primary-strong);
+}
+
+.app-theme-root .btn-danger,
+.stitch-app-shell .btn-danger,
+.app-theme-root .rh-danger-btn,
+.stitch-app-shell .rh-danger-btn,
+.app-theme-root .rh-row-btn.reject,
+.stitch-app-shell .rh-row-btn.reject,
+.app-theme-root .rh-danger-outline-btn,
+.stitch-app-shell .rh-danger-outline-btn {
+  color: #ffffff;
+}
+
+.app-theme-root table,
+.stitch-app-shell table {
+  font-family: var(--font-sans);
+}
+
+.app-theme-root table thead,
+.stitch-app-shell table thead {
+  background: var(--primary-soft);
+}
+
+.app-theme-root table thead th,
+.stitch-app-shell table thead th {
+  color: var(--gray-900);
+  font-size: 0.69rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.app-theme-root table tbody td,
+.stitch-app-shell table tbody td {
+  color: var(--gray-700);
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.app-theme-root table th,
+.app-theme-root table td,
+.stitch-app-shell table th,
+.stitch-app-shell table td {
+  border-bottom-color: rgba(100, 116, 139, 0.26);
+}
+
+.app-theme-root .audit-log-table thead,
+.stitch-app-shell .audit-log-table thead {
+  background: var(--primary-soft);
+}
+
+@media (max-width: 900px) {
+  .app-theme-root,
+  .stitch-app-shell {
+    font-size: 13px;
+  }
+
+  .app-theme-root .overflow-x-auto,
+  .stitch-app-shell .rh-table-wrapper,
+  .stitch-app-shell .audit-log-table-wrapper {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .app-theme-root .overflow-x-auto > table,
+  .stitch-app-shell .rh-table-wrapper > table,
+  .stitch-app-shell .audit-log-table-wrapper > table {
+    width: 100%;
+    min-width: 100%;
+  }
+
+  .app-theme-root button,
+  .stitch-app-shell button {
+    min-height: 32px;
+    padding: 0.4rem 0.58rem;
+    font-size: 0.72rem;
+  }
+
+  .app-theme-root .dashboard-content,
+  .stitch-app-shell .dashboard-content,
+  .app-theme-root .dashboard-controls,
+  .stitch-app-shell .dashboard-controls,
+  .app-theme-root .dashboard-header,
+  .stitch-app-shell .dashboard-header {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .app-theme-root table.mobile-stack-table,
+  .stitch-app-shell table.mobile-stack-table {
+    width: 100% !important;
+    min-width: 0 !important;
+    table-layout: auto !important;
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+    background: transparent;
+  }
+
+  .app-theme-root table.mobile-stack-table thead,
+  .stitch-app-shell table.mobile-stack-table thead {
+    display: none !important;
+  }
+
+  .app-theme-root table.mobile-stack-table,
+  .app-theme-root table.mobile-stack-table tbody,
+  .app-theme-root table.mobile-stack-table tr,
+  .app-theme-root table.mobile-stack-table td,
+  .stitch-app-shell table.mobile-stack-table,
+  .stitch-app-shell table.mobile-stack-table tbody,
+  .stitch-app-shell table.mobile-stack-table tr,
+  .stitch-app-shell table.mobile-stack-table td {
+    display: block;
+    width: 100% !important;
+  }
+
+  .app-theme-root table.mobile-stack-table tbody tr,
+  .stitch-app-shell table.mobile-stack-table tbody tr {
+    margin-bottom: 0.65rem;
+    padding: 0.58rem 0.68rem;
+    border: 1px solid rgba(148, 163, 184, 0.32);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+  }
+
+  .app-theme-root table.mobile-stack-table tbody tr td,
+  .stitch-app-shell table.mobile-stack-table tbody tr td {
+    border: none;
+    border-bottom: 1px dashed rgba(148, 163, 184, 0.36);
+    padding: 0.42rem 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.62rem;
+    text-align: right;
+    min-height: 1.8rem;
+  }
+
+  .app-theme-root table.mobile-stack-table tbody tr td:last-child,
+  .stitch-app-shell table.mobile-stack-table tbody tr td:last-child {
+    border-bottom: none;
+    padding-bottom: 0.12rem;
+  }
+
+  .app-theme-root table.mobile-stack-table tbody tr td::before,
+  .stitch-app-shell table.mobile-stack-table tbody tr td::before {
+    content: attr(data-label);
+    flex: 0 0 43%;
+    color: var(--gray-500);
+    font-size: 0.66rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .app-theme-root table.mobile-stack-table tbody tr td[data-label='Select'],
+  .stitch-app-shell table.mobile-stack-table tbody tr td[data-label='Select'] {
+    justify-content: flex-end;
+  }
+
+  .app-theme-root table.mobile-stack-table tbody tr td[data-label='Select']::before,
+  .stitch-app-shell table.mobile-stack-table tbody tr td[data-label='Select']::before {
+    margin-right: auto;
+  }
+
+  .app-theme-root .overflow-x-auto,
+  .stitch-app-shell .overflow-x-auto,
+  .stitch-app-shell .rh-table-wrapper,
+  .stitch-app-shell .audit-log-table-wrapper {
+    overflow-x: visible !important;
+  }
+}

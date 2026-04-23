@@ -1,0 +1,46 @@
+<svg width="1920" height="1080" viewBox="0 0 1920 1080" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1920" y2="1080" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#EAF0FF" />
+      <stop offset="0.5" stop-color="#F4F7FF" />
+      <stop offset="1" stop-color="#EEF2FF" />
+    </linearGradient>
+    <radialGradient id="spotA" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1500 180) rotate(134) scale(530 390)">
+      <stop stop-color="#4F46E5" stop-opacity="0.24" />
+      <stop offset="1" stop-color="#4F46E5" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="spotB" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(460 900) rotate(-26) scale(560 330)">
+      <stop stop-color="#0F172A" stop-opacity="0.18" />
+      <stop offset="1" stop-color="#0F172A" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  <rect width="1920" height="1080" fill="url(#bg)" />
+  <rect width="1920" height="1080" fill="url(#spotA)" />
+  <rect width="1920" height="1080" fill="url(#spotB)" />
+
+  <g opacity="0.28" transform="translate(180 260)">
+    <rect x="0" y="120" width="1180" height="190" rx="34" fill="#1E293B" />
+    <rect x="1140" y="148" width="180" height="162" rx="26" fill="#334155" />
+    <circle cx="260" cy="370" r="68" fill="#111827" />
+    <circle cx="970" cy="370" r="68" fill="#111827" />
+    <circle cx="260" cy="370" r="34" fill="#CBD5E1" />
+    <circle cx="970" cy="370" r="34" fill="#CBD5E1" />
+  </g>
+
+  <g opacity="0.18" fill="#4338CA">
+    <circle cx="240" cy="180" r="36" />
+    <circle cx="1710" cy="910" r="44" />
+    <circle cx="1380" cy="720" r="26" />
+    <circle cx="520" cy="860" r="22" />
+  </g>
+
+  <g opacity="0.09" stroke="#1E293B" stroke-width="2">
+    <path d="M0 840C260 770 490 770 740 840C970 904 1190 904 1410 840C1600 784 1775 782 1920 828" />
+    <path d="M0 902C260 832 490 832 740 902C970 966 1190 966 1410 902C1600 846 1775 844 1920 892" />
+  </g>
+
+  <g opacity="0.15" font-family="Inter, Segoe UI, Arial" font-weight="700" fill="#334155">
+    <text x="103" y="137" font-size="58">LETS TRANSPORT</text>
+  </g>
+</svg>

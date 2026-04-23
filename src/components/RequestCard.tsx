@@ -2,6 +2,7 @@ import React from 'react';
 import '../styles/requestCard.css';
 import { StatusBadge } from './StatusBadge';
 import type { RequestRecord } from '../types/workflow';
+import { formatRequestIdDisplay } from '../utils/workflowView';
 
 type RequestCardProps = {
   request: RequestRecord & { id?: string };
@@ -48,7 +49,7 @@ export const RequestCard = ({ request, onViewDetails, onAction, onCancel, showCa
     <div className="request-card">
       <div className="request-card-header">
         <div>
-          <h3>Request #{request.id?.substring(0, 8) ?? 'New'}</h3>
+          <h3>Request {formatRequestIdDisplay(request.id)}</h3>
           <p className="text-muted">
             {request.clientName ?? 'Unknown client'} - {request.city ?? 'Unknown city'}
           </p>

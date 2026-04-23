@@ -5,37 +5,59 @@
 }
 
 :root {
-  --font-sans: 'Manrope', 'Segoe UI', sans-serif;
-  --font-serif: 'Fraunces', 'Times New Roman', serif;
-  --primary: #1f6f78;
-  --primary-strong: #15545a;
-  --secondary: #4b5563;
-  --accent: #c9934f;
-  --success: #1f8f5f;
-  --danger: #d04b4b;
-  --warning: #c27c2c;
-  --gray-50: #f7f7f5;
-  --gray-100: #eef2f5;
-  --gray-200: #dfe5eb;
-  --gray-300: #cbd5dd;
-  --gray-400: #9aa5b1;
-  --gray-500: #7b8794;
-  --gray-600: #4b5563;
-  --gray-700: #354152;
-  --gray-800: #1f2937;
-  --gray-900: #101827;
-  --text-muted: #6b7683;
-  --link: #1f6f78;
-  --link-strong: #15545a;
+  --font-sans: 'Inter', 'Segoe UI', sans-serif;
+  --font-serif: 'Inter', 'Segoe UI', sans-serif;
+  --primary: #f26a21;
+  --primary-strong: #ec5b13;
+  --primary-soft: #fff7ed;
+  --primary-soft-border: #fed7aa;
+  --secondary: #475569;
+  --accent: #f26a21;
+  --success: #059669;
+  --success-strong: #047857;
+  --danger: #dc2626;
+  --danger-strong: #b91c1c;
+  --warning: #d97706;
+  --warning-strong: #b45309;
+  --gray-50: #f8fafc;
+  --gray-100: #f1f5f9;
+  --gray-200: #e2e8f0;
+  --gray-300: #cbd5e1;
+  --gray-400: #94a3b8;
+  --gray-500: #64748b;
+  --gray-600: #475569;
+  --gray-700: #334155;
+  --gray-800: #1e293b;
+  --gray-900: #0f172a;
+  --text-muted: #64748b;
+  --link: #f26a21;
+  --link-strong: #ec5b13;
   --surface: #ffffff;
-  --surface-elev: #fdfdfc;
+  --surface-elev: #ffffff;
   --border: rgba(15, 23, 42, 0.08);
-  --shadow-soft: 0 12px 30px rgba(15, 23, 42, 0.08);
-  --shadow-strong: 0 20px 50px rgba(15, 23, 42, 0.12);
-  --focus: 0 0 0 3px rgba(31, 111, 120, 0.18);
-  --app-bg: radial-gradient(1000px 520px at 8% -8%, rgba(31, 111, 120, 0.12) 0%, transparent 60%),
-    radial-gradient(850px 520px at 95% 8%, rgba(201, 147, 79, 0.12) 0%, transparent 55%),
-    linear-gradient(180deg, #f7f7f5 0%, #eef2f5 100%);
+  --shadow-soft: 0 4px 16px rgba(15, 23, 42, 0.06);
+  --shadow-strong: 0 16px 36px rgba(15, 23, 42, 0.14);
+  --interactive-shadow: 0 8px 20px rgba(242, 106, 33, 0.22);
+  --focus: 0 0 0 3px rgba(242, 106, 33, 0.18);
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 14px;
+  --control-height: 40px;
+  --control-padding-x: 0.8rem;
+  --control-bg: #ffffff;
+  --control-bg-muted: #f8fafc;
+  --control-border: var(--gray-300);
+  --control-border-strong: #fed7aa;
+  --card-bg: #ffffff;
+  --card-border: var(--gray-200);
+  --card-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
+  --app-bg: #f8fafc;
+  --company-bg-image: url('/company-bg.jfif');
+  --company-bg-overlay: rgba(248, 250, 252, 0.68);
+  --company-bg-overlay-strong: rgba(248, 250, 252, 0.8);
+  --glass-surface: rgba(255, 255, 255, 0.9);
+  --glass-surface-strong: rgba(255, 255, 255, 0.95);
 }
 
 body {
@@ -58,8 +80,22 @@ h1,
 h2,
 h3,
 h4 {
-  font-family: var(--font-serif);
-  letter-spacing: -0.01em;
+  font-family: var(--font-sans);
+  letter-spacing: -0.015em;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: var(--font-sans);
+}
+
+button {
+  border: 0;
+  cursor: pointer;
+  background-color: transparent;
+  letter-spacing: 0.01em;
 }
 
 .text-muted {
@@ -68,37 +104,173 @@ h4 {
 
 .error-page {
   display: flex;
-  flex-direction: column;
   justify-content: center;
   align-items: center;
   height: 100vh;
-  background: radial-gradient(circle at 10% 0%, rgba(31, 111, 120, 0.35), transparent 55%),
-    radial-gradient(circle at 95% 10%, rgba(201, 147, 79, 0.35), transparent 50%),
-    linear-gradient(150deg, #0f172a 0%, #1f2937 100%);
-  color: white;
+  background: var(--gray-50);
+  padding: 1rem;
+  position: relative;
+}
+
+.error-page::before,
+.error-page::after {
+  content: '';
+  position: absolute;
+  width: 280px;
+  height: 280px;
+  border-radius: 999px;
+  background: rgba(242, 106, 33, 0.15);
+  filter: blur(80px);
+  pointer-events: none;
+}
+
+.error-page::before {
+  top: 0;
+  left: -80px;
+}
+
+.error-page::after {
+  right: -80px;
+  bottom: 0;
+}
+
+.unauthorized-card {
+  width: 100%;
+  max-width: 480px;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid var(--gray-200);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
+  padding: 2.25rem 2rem;
   text-align: center;
+  position: relative;
+  z-index: 1;
+}
+
+.unauthorized-icon-wrap {
+  position: relative;
+  width: 92px;
+  margin: 0 auto 1.25rem;
+}
+
+.unauthorized-icon {
+  height: 92px;
+  width: 92px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(242, 106, 33, 0.08);
+  color: #c2410c;
+  font-size: 2.5rem;
+}
+
+.unauthorized-icon-badge {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  font-weight: 700;
+  border: 3px solid #fff;
 }
 
 .error-page h1 {
-  font-size: 3rem;
-  margin-bottom: 1rem;
+  font-family: var(--font-sans);
+  font-size: 2rem;
+  margin-bottom: 0.75rem;
+  color: #0f172a;
 }
 
 .error-page p {
-  margin-bottom: 2rem;
-  font-size: 1.1rem;
+  color: #475569;
+  margin-bottom: 1.5rem;
+  line-height: 1.6;
 }
 
-.error-page a {
-  color: white;
+.unauthorized-actions {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.unauthorized-primary,
+.unauthorized-secondary {
+  min-height: 44px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   text-decoration: none;
-  padding: 0.75rem 2rem;
-  border: 2px solid white;
-  border-radius: 4px;
-  transition: all 0.3s ease;
+  font-weight: 700;
+  border: 1px solid transparent;
 }
 
-.error-page a:hover {
-  background-color: white;
-  color: #667eea;
+.unauthorized-primary {
+  background: #f26a21;
+  color: #fff;
+}
+
+.unauthorized-primary:hover {
+  background: #ec5b13;
+}
+
+.unauthorized-secondary {
+  background: #fff;
+  color: #334155;
+  border-color: #cbd5e1;
+  cursor: pointer;
+}
+
+.unauthorized-secondary:hover {
+  background: #f8fafc;
+}
+
+.unauthorized-footnote {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e2e8f0;
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+@media (max-width: 768px) {
+  body {
+    font-size: 13px;
+  }
+
+  .error-page {
+    padding: 0.75rem;
+  }
+
+  .unauthorized-card {
+    padding: 1.5rem 1.2rem;
+  }
+
+  .unauthorized-icon-wrap {
+    width: 76px;
+  }
+
+  .unauthorized-icon {
+    width: 76px;
+    height: 76px;
+    font-size: 2rem;
+  }
+
+  .error-page h1 {
+    font-size: 1.55rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .unauthorized-primary,
+  .unauthorized-secondary {
+    width: 100%;
+  }
 }

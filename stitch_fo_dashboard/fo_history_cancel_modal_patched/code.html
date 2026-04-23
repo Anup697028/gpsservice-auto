@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>GPS Installation Automation - FO History</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">tailwind.config = {darkMode: "class", theme: {extend: {colors: {primary: "#f26a21", "background-light": "#f8f6f5", "background-dark": "#221610"}, fontFamily: {display: "Inter"}, borderRadius: {DEFAULT: "0px", lg: "0px", xl: "0px", full: "0px"}}}};</script>
+<style>
+        body { font-family: 'Public Sans', sans-serif; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-[#000000] dark:text-slate-100 font-display">
+<div class="relative flex h-auto min-h-screen w-full flex-col overflow-x-hidden">
+<div class="layout-container flex h-full grow flex-col">
+<header class="flex items-center justify-between whitespace-nowrap border-b border-slate-200 dark:border-slate-800 px-6 py-3 bg-white dark:bg-background-dark/50 bg-white border-b-2 border-black">
+<div class="flex items-center gap-8">
+<div class="flex items-center gap-3 text-primary">
+<h2 class="text-slate-900 dark:text-slate-100 text-lg font-bold leading-tight tracking-tight" style="color: #f26a21;">GPS Automation</h2>
+</div>
+<nav class="hidden md:flex items-center gap-6">
+<a class="text-slate-600 dark:text-slate-400 hover:text-primary dark:hover:text-primary text-sm font-semibold transition-colors" href="#">Dashboard</a>
+<a class="text-primary text-sm font-bold border-b-2 border-primary pb-1" href="#">Requests</a>
+<a class="text-slate-600 dark:text-slate-400 hover:text-primary dark:hover:text-primary text-sm font-semibold transition-colors" href="#">Installations</a>
+<a class="text-slate-600 dark:text-slate-400 hover:text-primary dark:hover:text-primary text-sm font-semibold transition-colors" href="#">Reports</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative hidden sm:block">
+<input class="bg-slate-100 dark:bg-slate-800 border-none rounded-lg pl-10 pr-4 py-2 text-sm w-64 focus:ring-2 focus:ring-primary/50" placeholder="Quick search ID or Client..." type="text"/>
+</div>
+<div class="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold border border-primary/30">
+                        JD
+                    </div>
+</div>
+</header>
+<main class="flex-1 px-6 py-8 max-w-7xl mx-auto w-full">
+<div class="flex flex-col gap-2 mb-8">
+<h1 class="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100" style="color: #f26a21;">FO History &amp; Requests</h1>
+<p class="text-slate-500 dark:text-slate-400">Monitor field operations, manage service requests, and track installation timelines.</p>
+</div>
+<div class="mb-6 flex border-b border-slate-200 dark:border-slate-800">
+<button class="px-6 py-3 text-sm font-bold border-b-2 border-primary text-primary">New Requests (12)</button>
+<button class="px-6 py-3 text-sm font-medium text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 border-b-2 border-transparent hover:border-slate-300">Request History</button>
+</div>
+<div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm border-black">
+<div class="p-4 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 flex flex-wrap gap-4 items-center justify-between">
+<div class="flex flex-wrap gap-3 items-center">
+<div class="relative">
+<input class="pl-9 pr-3 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-md focus:ring-1 focus:ring-primary" placeholder="Date Range" type="text"/>
+</div>
+<select class="text-xs py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-md focus:ring-1 focus:ring-primary">
+<option>All Statuses</option>
+<option>PARALLEL_REVIEW</option>
+<option>FO_CREATED</option>
+<option>PENDING_APPROVAL</option>
+</select>
+<select class="text-xs py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-md focus:ring-1 focus:ring-primary">
+<option>All Cities</option>
+<option>New York</option>
+<option>London</option>
+<option>Singapore</option>
+</select>
+<select class="text-xs py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-md focus:ring-1 focus:ring-primary">
+<option>Assigned RH</option>
+<option>Robert Fox</option>
+<option>Jane Cooper</option>
+</select>
+</div>
+<button class="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-sm font-bold transition-all" style="background-color: #f26a21; border-color: #f26a21;">
+
+                            Apply Filters
+                        </button>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse min-w-[1000px]">
+<thead>
+<tr class="bg-slate-50 dark:bg-slate-800/30 border-b border-slate-200 dark:border-slate-800"><th class="px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Request ID</th><th class="px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Client</th><th class="px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">City</th><th class="px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Assigned RH</th><th class="px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Service</th><th class="px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Cost</th><th class="px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Refundable</th><th class="px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Vehicles</th><th class="px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Status</th><th class="px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Created At</th><th class="px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500 text-right">Actions</th></tr>
+</thead>
+<tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+<td class="px-4 py-4 text-sm font-mono font-medium text-primary">#REQ-8291</td>
+<td class="px-4 py-4 text-sm font-semibold">Global Logistics Corp</td>
+<td class="px-4 py-4 text-sm text-slate-600 dark:text-slate-400">Miami</td>
+<td class="px-4 py-4">
+<div class="flex items-center gap-2">
+<div class="h-6 w-6 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-[10px] font-bold">RF</div>
+<span class="text-sm">Robert Fox</span>
+</div>
+</td>
+<td class="px-4 py-4 text-sm">Full Install</td>
+<td class="px-4 py-4 text-sm font-medium">$1,200</td>
+<td class="px-4 py-4">
+</td>
+<td class="px-4 py-4 text-sm font-bold">14</td>
+<td class="px-4 py-4">
+<span class="px-2 py-1 text-[10px] font-bold rounded bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 uppercase">Parallel Review</span>
+</td>
+<td class="px-4 py-4 text-xs text-slate-500">2023-10-24 09:12</td>
+<td class="px-4 py-4 text-right"><div class="flex justify-end gap-2"><button class="text-xs font-bold hover:text-primary transition-colors text-primary">VIEW</button><button class="text-xs font-bold transition-colors text-primary">CANCEL</button></div></td>
+</tr>
+<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+<td class="px-4 py-4 text-sm font-mono font-medium text-primary">#REQ-8288</td>
+<td class="px-4 py-4 text-sm font-semibold">Pacific Express</td>
+<td class="px-4 py-4 text-sm text-slate-600 dark:text-slate-400">San Francisco</td>
+<td class="px-4 py-4">
+<div class="flex items-center gap-2">
+<div class="h-6 w-6 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-[10px] font-bold">JC</div>
+<span class="text-sm">Jane Cooper</span>
+</div>
+</td>
+<td class="px-4 py-4 text-sm">Maintenance</td>
+<td class="px-4 py-4 text-sm font-medium">$450</td>
+<td class="px-4 py-4">
+</td>
+<td class="px-4 py-4 text-sm font-bold">5</td>
+<td class="px-4 py-4">
+<span class="px-2 py-1 text-[10px] font-bold rounded bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 uppercase">FO Created</span>
+</td>
+<td class="px-4 py-4 text-xs text-slate-500">2023-10-23 15:45</td>
+<td class="px-4 py-4 text-right"><div class="flex justify-end gap-2"><button class="text-xs font-bold hover:text-primary transition-colors text-primary">VIEW</button><button class="text-xs font-bold transition-colors text-primary">CANCEL</button></div></td>
+</tr>
+<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+<td class="px-4 py-4 text-sm font-mono font-medium text-primary">#REQ-8285</td>
+<td class="px-4 py-4 text-sm font-semibold">Apex Haulage</td>
+<td class="px-4 py-4 text-sm text-slate-600 dark:text-slate-400">Denver</td>
+<td class="px-4 py-4">
+<div class="flex items-center gap-2 italic text-slate-400">
+<span class="text-xs">Unassigned</span>
+</div>
+</td>
+<td class="px-4 py-4 text-sm">Upgrade</td>
+<td class="px-4 py-4 text-sm font-medium">$890</td>
+<td class="px-4 py-4">
+</td>
+<td class="px-4 py-4 text-sm font-bold">8</td>
+<td class="px-4 py-4">
+<span class="px-2 py-1 text-[10px] font-bold rounded bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 uppercase">Pending RH</span>
+</td>
+<td class="px-4 py-4 text-xs text-slate-500">2023-10-23 11:20</td>
+<td class="px-4 py-4 text-right"><div class="flex justify-end gap-2"><button class="text-xs font-bold hover:text-primary transition-colors text-primary">VIEW</button><button class="text-xs font-bold transition-colors text-primary">CANCEL</button></div></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="px-4 py-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/30 flex items-center justify-between">
+<p class="text-xs text-slate-500">Showing 3 of 12 new requests</p>
+<div class="flex gap-1">
+<button class="px-3 py-1 text-xs font-bold bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded disabled:opacity-50" disabled="">Prev</button>
+<button class="px-3 py-1 text-xs font-bold bg-primary text-white border border-primary rounded" style="background-color: #f26a21; border-color: #f26a21;">1</button>
+<button class="px-3 py-1 text-xs font-bold bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded">2</button>
+<button class="px-3 py-1 text-xs font-bold bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded">Next</button>
+</div>
+</div>
+</div>
+<div class="mt-12 flex flex-col gap-6">
+<div class="flex items-center justify-between">
+<h2 class="text-xl font-bold text-slate-900 dark:text-slate-100" style="color: #f26a21;">Request History</h2>
+<button class="text-xs font-bold text-primary flex items-center gap-1">
+
+                            Export CSV
+                        </button>
+</div>
+<div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm border-black">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse min-w-[1000px]">
+<thead>
+<tr class="bg-slate-50 dark:bg-slate-800/30 border-b border-slate-200 dark:border-slate-800"><th class="px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">ID</th><th class="px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Client</th><th class="px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">City</th><th class="px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Service</th><th class="px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Cost</th><th class="px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Ref.</th><th class="px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Qty</th><th class="px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Status</th><th class="px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Start</th><th class="px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">End</th><th class="px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500 text-right">Actions</th></tr>
+</thead>
+<tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+<td class="px-4 py-4 text-sm font-mono font-medium text-slate-600">#REQ-7500</td>
+<td class="px-4 py-4 text-sm font-semibold">Metro Delivery</td>
+<td class="px-4 py-4 text-sm">Chicago</td>
+<td class="px-4 py-4 text-sm">Full Install</td>
+<td class="px-4 py-4 text-sm">$3,400</td>
+<td class="px-4 py-4"></td>
+<td class="px-4 py-4 text-sm">25</td>
+<td class="px-4 py-4">
+<span class="px-2 py-0.5 text-[10px] font-bold rounded bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 uppercase">Completed</span>
+</td>
+<td class="px-4 py-4 text-xs text-slate-500">2023-09-12</td>
+<td class="px-4 py-4 text-xs text-slate-500">2023-09-15</td>
+<td class="px-4 py-4 text-right"><div class="flex justify-end gap-2"><button class="text-xs font-bold hover:text-primary transition-colors text-primary">VIEW</button><button class="text-xs font-bold transition-colors text-primary">CANCEL</button></div></td>
+</tr>
+<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+<td class="px-4 py-4 text-sm font-mono font-medium text-slate-600">#REQ-7482</td>
+<td class="px-4 py-4 text-sm font-semibold">QuickMove Inc</td>
+<td class="px-4 py-4 text-sm">Austin</td>
+<td class="px-4 py-4 text-sm">Removal</td>
+<td class="px-4 py-4 text-sm">$210</td>
+<td class="px-4 py-4"></td>
+<td class="px-4 py-4 text-sm">2</td>
+<td class="px-4 py-4">
+<span class="px-2 py-0.5 text-[10px] font-bold rounded bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 uppercase">Cancelled</span>
+</td>
+<td class="px-4 py-4 text-xs text-slate-500">2023-09-10</td>
+<td class="px-4 py-4 text-xs text-slate-500">2023-09-10</td>
+<td class="px-4 py-4 text-right"><div class="flex justify-end gap-2"><button class="text-xs font-bold hover:text-primary transition-colors text-primary">VIEW</button><button class="text-xs font-bold transition-colors text-primary">CANCEL</button></div></td>
+</tr>
+<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+<td class="px-4 py-4 text-sm font-mono font-medium text-slate-600">#REQ-7450</td>
+<td class="px-4 py-4 text-sm font-semibold">Stellar Fleet</td>
+<td class="px-4 py-4 text-sm">Seattle</td>
+<td class="px-4 py-4 text-sm">Maintenance</td>
+<td class="px-4 py-4 text-sm">$600</td>
+<td class="px-4 py-4"></td>
+<td class="px-4 py-4 text-sm">12</td>
+<td class="px-4 py-4">
+<span class="px-2 py-0.5 text-[10px] font-bold rounded bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400 uppercase">Halted</span>
+</td>
+<td class="px-4 py-4 text-xs text-slate-500">2023-09-05</td>
+<td class="px-4 py-4 text-xs text-slate-500">2023-09-08</td>
+<td class="px-4 py-4 text-right"><div class="flex justify-end gap-2"><button class="text-xs font-bold hover:text-primary transition-colors text-primary">VIEW</button><button class="text-xs font-bold transition-colors text-primary">CANCEL</button></div></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</main>
+<footer class="bg-white dark:bg-background-dark/50 border-t border-slate-200 dark:border-slate-800 py-6 px-6 mt-12">
+<div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+<p class="text-xs text-slate-500">© 2023 GPS Installation Automation System. All rights reserved.</p>
+<div class="flex gap-6">
+<a class="text-xs text-slate-500 hover:text-primary transition-colors" href="#">Documentation</a>
+<a class="text-xs text-slate-500 hover:text-primary transition-colors" href="#">Support Portal</a>
+<a class="text-xs text-slate-500 hover:text-primary transition-colors" href="#">Privacy Policy</a>
+</div>
+</div>
+</footer>
+</div>
+</div>
+<!-- Cancel Request Modal -->
+<div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" id="cancel-modal">
+<div class="bg-white w-full max-w-2xl shadow-xl rounded-lg overflow-hidden">
+<div class="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+<h3 class="text-lg font-bold uppercase tracking-tight" style="color: #f26a21;">Cancel Request</h3>
+<button class="text-slate-400 hover:text-red-500 transition-colors cursor-pointer">
+<span class="material-symbols-outlined">close</span>
+</button></div>
+<div class="p-6">
+<!-- Summary Section -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 p-4 bg-slate-50 border border-slate-200">
+<div><p class="text-[10px] uppercase font-bold text-slate-500">Request ID</p><p class="font-bold">#REQ-8291</p></div>
+<div><p class="text-[10px] uppercase font-bold text-slate-500">Client</p><p class="font-bold">Global Logistics</p></div>
+<div><p class="text-[10px] uppercase font-bold text-slate-500">Status</p><span class="px-2 py-0.5 text-[10px] font-bold rounded bg-blue-100 text-blue-700 uppercase">Parallel Review</span></div>
+<div><p class="text-[10px] uppercase font-bold text-slate-500">Vehicles</p><p class="font-bold">14</p></div>
+<div><p class="text-[10px] uppercase font-bold text-slate-500">Service</p><p class="font-bold">Full Install</p></div>
+<div><p class="text-[10px] uppercase font-bold text-slate-500">Total Cost</p><p class="font-bold">$1,200</p></div>
+<div><p class="text-[10px] uppercase font-bold text-slate-500">Refundable</p><p class="font-bold text-green-600">Yes</p></div>
+</div>
+<!-- Cancellation Options -->
+<div class="space-y-4 mb-6">
+<label class="flex items-start gap-3 p-3 border-2 border-primary rounded-lg cursor-pointer bg-primary/5">
+<input checked="" class="mt-1 text-primary focus:ring-primary" name="cancel_type" type="radio"/>
+<div>
+<p class="font-bold">Cancel entire request</p>
+<p class="text-xs text-slate-600">All 14 vehicles in this request will be cancelled.</p>
+</div>
+</label>
+<label class="flex items-start gap-3 p-3 border border-slate-300 rounded-lg cursor-pointer">
+<input class="mt-1 text-primary focus:ring-primary" name="cancel_type" type="radio"/>
+<div>
+<p class="font-bold">Cancel one vehicle from bulk</p>
+<p class="text-xs text-slate-600">Select a specific vehicle to remove from this request.</p>
+</div>
+</label>
+</div>
+<!-- Vehicle List (Conditional) -->
+<div class="mb-6 border border-slate-200 max-h-48 overflow-y-auto">
+<table class="w-full text-xs text-left">
+<thead class="bg-slate-100 sticky top-0 font-bold border-b">
+<tr>
+<th class="px-3 py-2">Vehicle #</th>
+<th class="px-3 py-2">Type</th>
+<th class="px-3 py-2">Service</th>
+<th class="px-3 py-2">Cost</th>
+<th class="px-3 py-2 text-right">Select</th>
+</tr>
+</thead>
+<tbody class="divide-y">
+<tr class="hover:bg-slate-50">
+<td class="px-3 py-2">VHL-9012</td>
+<td class="px-3 py-2">Long Haul</td>
+<td class="px-3 py-2">Full Install</td>
+<td class="px-3 py-2">$100</td>
+<td class="px-3 py-2 text-right"><input name="single_v" type="radio"/></td>
+</tr>
+<tr class="hover:bg-slate-50">
+<td class="px-3 py-2">VHL-9013</td>
+<td class="px-3 py-2">Long Haul</td>
+<td class="px-3 py-2">Full Install</td>
+<td class="px-3 py-2">$100</td>
+<td class="px-3 py-2 text-right"><input name="single_v" type="radio"/></td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Confirmation -->
+<div class="space-y-4 pt-4 border-t border-slate-200">
+<label class="flex items-center gap-3">
+<input class="rounded border-slate-300 text-primary focus:ring-primary" type="checkbox"/>
+<span class="text-sm font-medium">I understand that this action is permanent and may incur processing fees.</span>
+</label>
+<div class="flex gap-3">
+<button class="flex-1 bg-white border-2 py-2.5 font-bold hover:bg-orange-50 transition-colors uppercase text-sm rounded-lg" style="border-color: #f26a21; color: #f26a21;">Keep Request</button>
+<button class="flex-1 bg-black text-white border-2 border-black py-2.5 font-bold hover:bg-slate-800 transition-colors uppercase text-sm disabled:opacity-50 rounded-lg" style="background-color: #f26a21; border-color: #f26a21;">Confirm Cancellation</button>
+</div>
+</div>
+</div>
+</div>
+</div></body></html>

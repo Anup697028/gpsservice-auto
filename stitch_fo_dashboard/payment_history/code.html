@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Payment History</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ec5b13",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#221610",
+                    },
+                    fontFamily: {
+                        "display": ["Public Sans"]
+                    },
+                    borderRadius: {"DEFAULT": "0rem", "lg": "0rem", "xl": "0rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: "Public Sans", sans-serif;
+        }
+        .compact-table td, .compact-table th {
+            padding: 0.5rem 1rem;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display">
+<div class="flex h-screen overflow-hidden">
+<!-- Sidebar -->
+<aside class="w-64 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col">
+<div class="p-6">
+<h1 class="text-primary text-xl font-bold uppercase tracking-wider">Payment Portal</h1>
+<p class="text-slate-500 dark:text-slate-400 text-xs mt-1">INTERNAL ADMINISTRATION</p>
+</div>
+<nav class="flex-1 px-4 space-y-1">
+<a class="flex items-center gap-3 px-3 py-2.5 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" href="#">
+<span class="material-symbols-outlined text-slate-400">dashboard</span>
+<span class="text-sm font-semibold">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 bg-primary/10 text-primary border-l-4 border-primary" href="#">
+<span class="material-symbols-outlined">history</span>
+<span class="text-sm font-bold">History</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" href="#">
+<span class="material-symbols-outlined text-slate-400">person</span>
+<span class="text-sm font-semibold">Profile</span>
+</a>
+</nav>
+<div class="p-4 border-t border-slate-200 dark:border-slate-800">
+<div class="flex items-center gap-3 px-3">
+<div class="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center overflow-hidden">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="Small round user profile avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDPxVa0hHY_0Hxibs4e1nlZH0rsduBjrVu7HE04nyZaYCFoPhXw3pz3do7W1j-hjfwqczVO4Hr6z0JX-XDzRsDX1CWb7SC-wz0JfzrjYr5ZgVf428s-rycvUcWGdFM1QN-8R1TIlOB-F-AgAxgWWM-dVGaIdGY05JSuV-SDOoi59BWl1xBIRbibO5Mnr55F6DhxoHvyFFYeNYM-wf4Ogv1QmmqYWO5MZkfkltGVP0K5pHTZXSdBOutspF7bFBHSlLrtrkhiMNGlOKw"/>
+</div>
+<div class="flex-1 min-w-0">
+<p class="text-xs font-bold truncate">Admin Account</p>
+<p class="text-[10px] text-slate-500 uppercase">Superuser</p>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 flex flex-col overflow-hidden">
+<!-- Header Section -->
+<header class="p-8 pb-4">
+<h2 class="text-primary text-3xl font-black uppercase tracking-tight">Payment History</h2>
+<p class="text-slate-600 dark:text-slate-400 text-sm mt-1">Review and audit all finalized transactions across the network.</p>
+</header>
+<!-- Filters -->
+<section class="px-8 py-4 flex flex-wrap items-center gap-4 border-b border-slate-200 dark:border-slate-800">
+<span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Filter Status:</span>
+<div class="flex gap-1 bg-slate-100 dark:bg-slate-800 p-1">
+<button class="px-4 py-1.5 text-xs font-bold bg-white dark:bg-slate-700 shadow-sm">ALL</button>
+<button class="px-4 py-1.5 text-xs font-bold hover:bg-white/50 dark:hover:bg-slate-700/50 transition-all">APPROVED</button>
+<button class="px-4 py-1.5 text-xs font-bold hover:bg-white/50 dark:hover:bg-slate-700/50 transition-all">REJECTED</button>
+</div>
+<div class="ml-auto flex gap-2">
+<button class="flex items-center gap-2 px-4 py-1.5 border border-slate-300 dark:border-slate-600 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-800">
+<span class="material-symbols-outlined text-sm">calendar_today</span>
+                    LAST 30 DAYS
+                </button>
+<button class="flex items-center gap-2 px-4 py-1.5 border border-slate-300 dark:border-slate-600 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-800">
+<span class="material-symbols-outlined text-sm">download</span>
+                    EXPORT CSV
+                </button>
+</div>
+</section>
+<!-- Table Container -->
+<section class="flex-1 overflow-auto p-8">
+<div class="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
+<table class="w-full text-left border-collapse compact-table">
+<thead>
+<tr class="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
+<th class="text-xs font-black uppercase text-slate-600 dark:text-slate-300 tracking-wider w-32">Date</th>
+<th class="text-xs font-black uppercase text-slate-600 dark:text-slate-300 tracking-wider">Transaction ID</th>
+<th class="text-xs font-black uppercase text-slate-600 dark:text-slate-300 tracking-wider">Amount</th>
+<th class="text-xs font-black uppercase text-slate-600 dark:text-slate-300 tracking-wider">Status</th>
+<th class="text-xs font-black uppercase text-slate-600 dark:text-slate-300 tracking-wider text-right">Action</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+<td class="text-sm font-medium">2023-11-15</td>
+<td class="text-sm font-mono text-slate-500">TXN-99021-X3</td>
+<td class="text-sm font-bold">$12,450.00</td>
+<td>
+<span class="inline-flex items-center px-2 py-0.5 text-[10px] font-black bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">APPROVED</span>
+</td>
+<td class="text-right">
+<button class="text-[11px] font-black text-primary hover:underline uppercase tracking-tighter">View Details</button>
+</td>
+</tr>
+<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+<td class="text-sm font-medium">2023-11-14</td>
+<td class="text-sm font-mono text-slate-500">TXN-98212-A1</td>
+<td class="text-sm font-bold">$1,200.00</td>
+<td>
+<span class="inline-flex items-center px-2 py-0.5 text-[10px] font-black bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">REJECTED</span>
+</td>
+<td class="text-right">
+<button class="text-[11px] font-black text-primary hover:underline uppercase tracking-tighter">View Details</button>
+</td>
+</tr>
+<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+<td class="text-sm font-medium">2023-11-14</td>
+<td class="text-sm font-mono text-slate-500">TXN-98115-B9</td>
+<td class="text-sm font-bold">$45.99</td>
+<td>
+<span class="inline-flex items-center px-2 py-0.5 text-[10px] font-black bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">APPROVED</span>
+</td>
+<td class="text-right">
+<button class="text-[11px] font-black text-primary hover:underline uppercase tracking-tighter">View Details</button>
+</td>
+</tr>
+<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+<td class="text-sm font-medium">2023-11-12</td>
+<td class="text-sm font-mono text-slate-500">TXN-97003-C4</td>
+<td class="text-sm font-bold">$3,400.00</td>
+<td>
+<span class="inline-flex items-center px-2 py-0.5 text-[10px] font-black bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">APPROVED</span>
+</td>
+<td class="text-right">
+<button class="text-[11px] font-black text-primary hover:underline uppercase tracking-tighter">View Details</button>
+</td>
+</tr>
+<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+<td class="text-sm font-medium">2023-11-10</td>
+<td class="text-sm font-mono text-slate-500">TXN-96882-M1</td>
+<td class="text-sm font-bold">$210.00</td>
+<td>
+<span class="inline-flex items-center px-2 py-0.5 text-[10px] font-black bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">REJECTED</span>
+</td>
+<td class="text-right">
+<button class="text-[11px] font-black text-primary hover:underline uppercase tracking-tighter">View Details</button>
+</td>
+</tr>
+<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+<td class="text-sm font-medium">2023-11-09</td>
+<td class="text-sm font-mono text-slate-500">TXN-96210-Z2</td>
+<td class="text-sm font-bold">$8,900.50</td>
+<td>
+<span class="inline-flex items-center px-2 py-0.5 text-[10px] font-black bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">APPROVED</span>
+</td>
+<td class="text-right">
+<button class="text-[11px] font-black text-primary hover:underline uppercase tracking-tighter">View Details</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Pagination -->
+<div class="mt-6 flex items-center justify-between">
+<p class="text-xs text-slate-500 font-bold uppercase">Showing 1 to 6 of 124 transactions</p>
+<div class="flex border border-slate-300 dark:border-slate-700">
+<button class="p-2 border-r border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800">
+<span class="material-symbols-outlined text-sm leading-none">chevron_left</span>
+</button>
+<button class="px-4 py-2 text-xs font-black bg-primary text-white">1</button>
+<button class="px-4 py-2 text-xs font-black hover:bg-slate-50 dark:hover:bg-slate-800 border-x border-slate-300 dark:border-slate-700">2</button>
+<button class="px-4 py-2 text-xs font-black hover:bg-slate-50 dark:hover:bg-slate-800 border-r border-slate-300 dark:border-slate-700">3</button>
+<button class="p-2 hover:bg-slate-50 dark:hover:bg-slate-800">
+<span class="material-symbols-outlined text-sm leading-none">chevron_right</span>
+</button>
+</div>
+</div>
+</section>
+</main>
+</div>
+</body></html>

@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>RH Installation History | GPS Automation System</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ec5b13",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#221610",
+                    },
+                    fontFamily: {
+                        "display": ["Public Sans"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 antialiased">
+<div class="relative flex h-auto min-h-screen w-full flex-col overflow-x-hidden">
+<!-- Top Navigation Bar -->
+<header class="flex items-center justify-between whitespace-nowrap border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-6 py-3 lg:px-10">
+<div class="flex items-center gap-8">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary text-3xl">route</span>
+<h2 class="text-slate-900 dark:text-slate-100 text-lg font-bold leading-tight tracking-tight uppercase">GPS Automation RH</h2>
+</div>
+<nav class="hidden md:flex items-center gap-6">
+<a class="text-slate-600 dark:text-slate-400 hover:text-primary transition-colors text-sm font-semibold uppercase tracking-wider" href="#">Dashboard</a>
+<a class="text-primary border-b-2 border-primary py-1 text-sm font-bold uppercase tracking-wider" href="#">History</a>
+<a class="text-slate-600 dark:text-slate-400 hover:text-primary transition-colors text-sm font-semibold uppercase tracking-wider" href="#">Profile</a>
+</nav>
+</div>
+<div class="flex flex-1 justify-end gap-4">
+<div class="relative hidden sm:block w-full max-w-xs">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
+<input class="w-full rounded-lg border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 pl-10 pr-4 py-2 text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all" placeholder="Search Request ID or Vehicle..." type="text"/>
+</div>
+<button class="relative p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-2 right-2 flex h-2 w-2 rounded-full bg-primary"></span>
+</button>
+</div>
+</header>
+<main class="flex-1 flex flex-col md:flex-row">
+<!-- Sidebar Navigation (Desktop) -->
+<aside class="w-full md:w-64 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-6 flex flex-col gap-8">
+<div class="space-y-1">
+<p class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-4">Operations Control</p>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-600 dark:text-slate-400 hover:text-primary rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-sm font-bold">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 bg-primary/10 text-primary rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined">history</span>
+<span class="text-sm font-bold">History</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-600 dark:text-slate-400 hover:text-primary rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined">account_circle</span>
+<span class="text-sm font-bold">Profile</span>
+</a>
+</div>
+<div class="mt-auto p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800">
+<h4 class="text-xs font-black uppercase text-primary mb-1">Regional Head</h4>
+<p class="text-slate-500 text-[11px] leading-tight">Managing Southeast Region Logistics Operations</p>
+</div>
+</aside>
+<!-- Main Content -->
+<section class="flex-1 p-6 lg:p-10 max-w-[1440px] mx-auto w-full">
+<!-- Header Section -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
+<div class="space-y-1">
+<h1 class="text-primary text-4xl font-black uppercase tracking-tighter">Installation History</h1>
+<p class="text-slate-500 dark:text-slate-400 font-medium">Audit logs of all processed, completed, and halted requests.</p>
+</div>
+<div class="flex gap-2">
+<button class="inline-flex items-center gap-2 px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-bold uppercase hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+<span class="material-symbols-outlined text-lg">filter_list</span> Filter
+                    </button>
+<button class="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-bold uppercase hover:bg-primary/90 transition-all shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined text-lg">download</span> Export CSV
+                    </button>
+</div>
+</div>
+<!-- Status Tabs -->
+<div class="flex border-b border-slate-200 dark:border-slate-800 mb-6 overflow-x-auto whitespace-nowrap">
+<button class="px-6 py-3 border-b-2 border-primary text-primary text-xs font-black uppercase tracking-widest">All Processed</button>
+<button class="px-6 py-3 border-b-2 border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 text-xs font-black uppercase tracking-widest">Completed</button>
+<button class="px-6 py-3 border-b-2 border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 text-xs font-black uppercase tracking-widest">Halted/Cancelled</button>
+</div>
+<!-- History Table -->
+<div class="bg-white dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800">
+<th class="px-6 py-4 text-[11px] font-black uppercase tracking-widest text-slate-500">Request ID</th>
+<th class="px-6 py-4 text-[11px] font-black uppercase tracking-widest text-slate-500">Status</th>
+<th class="px-6 py-4 text-[11px] font-black uppercase tracking-widest text-slate-500">Client</th>
+<th class="px-6 py-4 text-[11px] font-black uppercase tracking-widest text-slate-500">Vehicle Number</th>
+<th class="px-6 py-4 text-[11px] font-black uppercase tracking-widest text-slate-500">Service Type</th>
+<th class="px-6 py-4 text-[11px] font-black uppercase tracking-widest text-slate-500">Date</th>
+<th class="px-6 py-4 text-[11px] font-black uppercase tracking-widest text-slate-500 text-right">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+<!-- Row 1 -->
+<tr class="hover:bg-slate-50 dark:hover:bg-slate-900/40 transition-colors">
+<td class="px-6 py-4 text-sm font-black text-slate-900 dark:text-slate-100">#REQ-8821</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 uppercase tracking-tight">COMPLETED</span>
+</td>
+<td class="px-6 py-4 text-sm font-medium text-slate-600 dark:text-slate-400">Logistics Pro</td>
+<td class="px-6 py-4 text-sm font-bold text-slate-800 dark:text-slate-200 font-mono">ABC-1234</td>
+<td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">GPS Install</td>
+<td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">2023-10-12</td>
+<td class="px-6 py-4 text-right">
+<button class="text-primary hover:underline text-xs font-black uppercase tracking-widest">View</button>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-slate-50 dark:hover:bg-slate-900/40 transition-colors">
+<td class="px-6 py-4 text-sm font-black text-slate-900 dark:text-slate-100">#REQ-8819</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 uppercase tracking-tight">HALTED</span>
+</td>
+<td class="px-6 py-4 text-sm font-medium text-slate-600 dark:text-slate-400">Swift Fleet</td>
+<td class="px-6 py-4 text-sm font-bold text-slate-800 dark:text-slate-200 font-mono">XYZ-9876</td>
+<td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">Maintenance</td>
+<td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">2023-10-11</td>
+<td class="px-6 py-4 text-right">
+<button class="text-primary hover:underline text-xs font-black uppercase tracking-widest">View</button>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-slate-50 dark:hover:bg-slate-900/40 transition-colors">
+<td class="px-6 py-4 text-sm font-black text-slate-900 dark:text-slate-100">#REQ-8815</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400 uppercase tracking-tight">CANCELLED</span>
+</td>
+<td class="px-6 py-4 text-sm font-medium text-slate-600 dark:text-slate-400">City Cabs</td>
+<td class="px-6 py-4 text-sm font-bold text-slate-800 dark:text-slate-200 font-mono">B-5521</td>
+<td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">Sensor Setup</td>
+<td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">2023-10-10</td>
+<td class="px-6 py-4 text-right">
+<button class="text-primary hover:underline text-xs font-black uppercase tracking-widest">View</button>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="hover:bg-slate-50 dark:hover:bg-slate-900/40 transition-colors">
+<td class="px-6 py-4 text-sm font-black text-slate-900 dark:text-slate-100">#REQ-8810</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 uppercase tracking-tight">COMPLETED</span>
+</td>
+<td class="px-6 py-4 text-sm font-medium text-slate-600 dark:text-slate-400">Heavy Haulers</td>
+<td class="px-6 py-4 text-sm font-bold text-slate-800 dark:text-slate-200 font-mono">T-0012</td>
+<td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">GPS Install</td>
+<td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">2023-10-09</td>
+<td class="px-6 py-4 text-right">
+<button class="text-primary hover:underline text-xs font-black uppercase tracking-widest">View</button>
+</td>
+</tr>
+<!-- Row 5 -->
+<tr class="hover:bg-slate-50 dark:hover:bg-slate-900/40 transition-colors">
+<td class="px-6 py-4 text-sm font-black text-slate-900 dark:text-slate-100">#REQ-8805</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 uppercase tracking-tight">REJECTED</span>
+</td>
+<td class="px-6 py-4 text-sm font-medium text-slate-600 dark:text-slate-400">Global Trans</td>
+<td class="px-6 py-4 text-sm font-bold text-slate-800 dark:text-slate-200 font-mono">M-4432</td>
+<td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">Battery Sync</td>
+<td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">2023-10-08</td>
+<td class="px-6 py-4 text-right">
+<button class="text-primary hover:underline text-xs font-black uppercase tracking-widest">View</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Pagination -->
+<div class="px-6 py-4 bg-slate-50 dark:bg-slate-900/50 flex items-center justify-between border-t border-slate-200 dark:border-slate-800">
+<p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Showing 1-5 of 124 Results</p>
+<div class="flex gap-1">
+<button class="p-2 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 rounded hover:bg-slate-50 dark:hover:bg-slate-900">
+<span class="material-symbols-outlined text-sm">chevron_left</span>
+</button>
+<button class="p-2 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 rounded hover:bg-slate-50 dark:hover:bg-slate-900">
+<span class="material-symbols-outlined text-sm">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer Stats (Dense Operational) -->
+<footer class="bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 p-4">
+<div class="max-w-[1440px] mx-auto flex flex-wrap justify-center md:justify-start gap-x-12 gap-y-4">
+<div class="flex items-center gap-2">
+<span class="text-[10px] font-black uppercase tracking-widest text-slate-400">Total Processed:</span>
+<span class="text-sm font-black text-slate-900 dark:text-slate-100">1,204</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-[10px] font-black uppercase tracking-widest text-slate-400">Success Rate:</span>
+<span class="text-sm font-black text-emerald-600">94.2%</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-[10px] font-black uppercase tracking-widest text-slate-400">Avg. Time:</span>
+<span class="text-sm font-black text-slate-900 dark:text-slate-100">1.4 Days</span>
+</div>
+<div class="ml-auto text-[10px] font-black uppercase tracking-widest text-slate-300">
+                System Version 2.4.0-RH
+            </div>
+</div>
+</footer>
+</div>
+</body></html>
