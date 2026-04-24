@@ -6,19 +6,26 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+*.pid
+*.seed
 
 node_modules
 dist
 dist-ssr
 *.local
+coverage
+*.tsbuildinfo
+
+# Monorepo package artifacts
+api/node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+api/dist/
 
 # Environment and secrets
 .env
 .env.*
-!.env.example
-!.env.local.example
-!.env.docker.local.example
-!*.env.example
 
 # Firebase local cache/state
 .firebase/
@@ -29,7 +36,17 @@ dist-ssr
 *credentials*.json
 *.pem
 *.p12
-*.key
+
+# Deployment/runtime generated files
+.deploy-tag
+.deploy-version.txt
+.tmp-curl-shim/
+.tmp-curlshim.Dockerfile
+
+# Local artifacts and temporary outputs
+artifacts/
+tmp/
+temp/
 
 # Editor directories and files
 .vscode/*
@@ -41,3 +58,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# OS cruft
+Thumbs.db
