@@ -139,7 +139,14 @@ export const AuthProvider = ({ children }) => {
     };
 
     if (fallbackProfile && resolveProfileCompleted(fallbackProfile) && !resolveProfileCompleted(mergedProfile)) {
-      ['name', 'employeeId', 'phoneNumber', 'role', 'email', 'photoURL'].forEach((key) => {
+      // Keep profile completion sticky when server data is temporarily stale.
+      ['name', 'employeeId', 'phoneNumber'].forEach((key) => {
+        if (fallbackProfile[key] !== undefined && fallbackProfile[key] !== null && fallbackProfile[key] !== '') {
+          mergedProfile[key] = fallbackProfile[key];
+        }
+      });
+
+      ['role', 'email', 'photoURL'].forEach((key) => {
         if (mergedProfile[key] === undefined || mergedProfile[key] === null || mergedProfile[key] === '') {
           mergedProfile[key] = fallbackProfile[key] ?? mergedProfile[key];
         }

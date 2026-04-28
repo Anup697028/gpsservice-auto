@@ -3,40 +3,10 @@ const path = require('path');
 const net = require('net');
 const { spawn, spawnSync } = require('child_process');
 const { URL } = require('url');
-const dotenv = require('dotenv');
 const { PrismaClient, Prisma } = require('@prisma/client');
-
-dotenv.config();
-
-function resolveDatabaseUrl() {
-  const databaseUrlFile = process.env.DATABASE_URL_FILE || '';
-  if (databaseUrlFile && fs.existsSync(databaseUrlFile)) {
-    const fileValue = String(fs.readFileSync(databaseUrlFile, 'utf8')).trim();
-    if (fileValue) {
-      return fileValue;
-    }
-  }
-
-  if (process.env.DATABASE_URL) {
-    return process.env.DATABASE_URL;
-  }
-
-  const user = process.env.POSTGRES_USER || '';
-  const password = process.env.POSTGRES_PASSWORD || '';
-  const database = process.env.POSTGRES_DB || '';
-  const host = process.env.POSTGRES_HOST || 'db';
-  const port = process.env.POSTGRES_PORT || '5432';
-
-  if (!user || !password || !database) {
-    throw new Error('DATABASE_URL is missing and POSTGRES_USER/POSTGRES_PASSWORD/POSTGRES_DB are not fully configured.');
-  }
-
-  return `postgresql://${encodeURIComponent(user)}:${encodeURIComponent(password)}@${host}:${port}/${database}?schema=public&sslmode=disable`;
-}
-
-const databaseUrl = resolveDatabaseUrl();
-process.env.DATABASE_URL = databaseUrl;
-const prisma = new PrismaClient();
+const { loadSecrets, getRequiredSecret } = require('./secrets-manager.cjs');
+let prisma;
+let databaseUrl;
 
 function waitForDatabase() {
   const parsedUrl = new URL(databaseUrl);
@@ -175,21 +145,21 @@ async function shouldRestoreCoreData() {
 }
 
 function hasRestoreSource() {
-  const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH || '';
-  return Boolean(serviceAccountPath && fs.existsSync(serviceAccountPath));
+  return true;
 }
 
 async function main() {
   try {
+    await loadSecrets({ secrets: ['DATABASE_URL'] });
+    databaseUrl = getRequiredSecret('DATABASE_URL');
+    process.env.DATABASE_URL = databaseUrl;
+    prisma = new PrismaClient();
+
     await waitForDatabase();
     await applySchema();
 
     const restoreNeeded = await shouldRestoreCoreData();
     if (restoreNeeded) {
-      if (!hasRestoreSource()) {
-        throw new Error('Core database data is missing but FIREBASE_SERVICE_ACCOUNT_PATH is not configured.');
-      }
-
       console.log('Core database data is missing or incomplete. Restoring from Firestore...');
       runStep('node', ['scripts/restoreFirestore.cjs'], 'Firestore data restore');
     } else {
@@ -198,7 +168,7 @@ async function main() {
 
     await prisma.$disconnect();
 
-    const server = spawn('node', ['dist/server.js'], {
+    const server = spawn('node', ['dist/index.js'], {
       stdio: 'inherit',
       env: process.env,
       shell: process.platform === 'win32',

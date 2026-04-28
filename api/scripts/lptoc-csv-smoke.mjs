@@ -1,55 +1,26 @@
-import fs from 'node:fs';
-import path from 'node:path';
 import process from 'node:process';
-import { fileURLToPath } from 'node:url';
 import admin from 'firebase-admin';
 import { PrismaClient } from '@prisma/client';
+import secretsManager from './secrets-manager.cjs';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const repoRoot = path.resolve(__dirname, '..', '..');
-
-const parseEnvFile = (filePath) => {
-  if (!fs.existsSync(filePath)) {
-    return {};
-  }
-
-  const content = fs.readFileSync(filePath, 'utf8');
-  const env = {};
-
-  for (const line of content.split(/\r?\n/)) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) {
-      continue;
-    }
-
-    const eq = trimmed.indexOf('=');
-    if (eq <= 0) {
-      continue;
-    }
-
-    const key = trimmed.slice(0, eq).trim();
-    const value = trimmed.slice(eq + 1).trim();
-    env[key] = value;
-  }
-
-  return env;
-};
-
-const envLocal = parseEnvFile(path.join(repoRoot, '.env.local'));
-const apiKey = envLocal.VITE_FIREBASE_API_KEY;
-const apiBaseUrl = (envLocal.VITE_API_BASE_URL || 'http://localhost:3002').replace(/\/$/, '');
+const { loadSecrets, getJsonSecret } = secretsManager;
+const apiKey = process.env.VITE_FIREBASE_API_KEY;
+const apiBaseUrl = (process.env.VITE_API_BASE_URL || 'http://localhost:3002').replace(/\/$/, '');
 
 if (!apiKey) {
-  throw new Error('VITE_FIREBASE_API_KEY missing in .env.local');
+  throw new Error('VITE_FIREBASE_API_KEY missing from the environment');
 }
 
-const serviceAccountPath = path.join(repoRoot, 'gps-integration-b1a2e-firebase-adminsdk-fbsvc-85d47bd9e0.json');
-if (!fs.existsSync(serviceAccountPath)) {
-  throw new Error('Service account JSON not found at repo root');
+await loadSecrets({ secrets: ['FIREBASE_SERVICE_ACCOUNT_JSON', 'FIREBASE_PROJECT_ID'] });
+const serviceAccount = getJsonSecret('FIREBASE_SERVICE_ACCOUNT_JSON');
+if (!serviceAccount) {
+  throw new Error('FIREBASE_SERVICE_ACCOUNT_JSON is missing from Secret Manager');
 }
 
-const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+  projectId: String(serviceAccount.project_id || process.env.FIREBASE_PROJECT_ID || '').trim() || undefined,
+});
 
 const prisma = new PrismaClient();
 

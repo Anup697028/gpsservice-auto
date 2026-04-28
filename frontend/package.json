@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "node scripts/dev-stack.mjs",
+    "dev": "vite",
     "dev:frontend": "vite",
     "dev:email": "node dev-email-server.js",
     "build": "vite build",

@@ -51,6 +51,26 @@ Server will start on `http://localhost:3001`
 
 For production containers, `npm run start:prod` now waits for Postgres, applies committed Prisma migrations, baselines legacy databases that were created before migration history existed, and restores core data from Firestore when the database is empty before starting the API.
 
+## Google Secret Manager
+
+This API no longer reads secrets from a `.env` file. It loads the required values from Google Secret Manager through [`src/secretManager.ts`](src/secretManager.ts).
+
+Required IAM role:
+- Grant the runtime identity `roles/secretmanager.secretAccessor`.
+
+Secret naming:
+- Create one secret per setting and name it exactly after the config key, for example `DATABASE_URL`, `FIREBASE_SERVICE_ACCOUNT_JSON`, `SMTP_HOST`, and `SMTP_PASS`.
+- Store the latest value as the `latest` version for each secret.
+
+Local credentials:
+- Set `GOOGLE_APPLICATION_CREDENTIALS` to the provided service-account JSON path, or run `gcloud auth application-default login`.
+- Keep service-account JSON files outside the repository and point `GOOGLE_APPLICATION_CREDENTIALS` to that external path.
+- In Kubernetes or other production runtimes, prefer Workload Identity or an equivalent ADC source instead of mounting the key file directly.
+
+Startup behavior:
+- The API preloads required secrets at startup and fails fast if a secret is missing or inaccessible.
+- Secrets are cached in memory after the first fetch; values are never logged.
+
 ## API Endpoints
 
 ### Public Endpoints (No Auth Required)
@@ -74,26 +94,11 @@ Examples:
 - Numeric: `1234` → Formatted: `REQ-01234`
 - Numeric: `99999` → Formatted: `REQ-99999`
 
-## Environment Variables
+## Configuration
 
-All configured in `.env`:
+Non-secret runtime settings still come from the environment, for example `PORT` and `NODE_ENV`.
 
-```
-DATABASE_URL=postgresql://gps_user:password@localhost:5432/gps_app?sslmode=disable
-POSTGRES_HOST=db
-POSTGRES_PORT=5432
-POSTGRES_USER=gps_user
-POSTGRES_PASSWORD=password
-POSTGRES_DB=gps_app
-FIREBASE_PROJECT_ID=gps-integration-b1a2e
-FIREBASE_SERVICE_ACCOUNT_PATH=/path/to/firebase-adminsdk.json
-COMPANY_EMAIL_DOMAIN=letstransport.team
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=anupgogeri4@gmail.com
-SMTP_PASS=ckzjksyurzozkirj
-PORT=3001
-```
+Secret-backed settings should live in Secret Manager with the same names as the config keys used by the API.
 
 ## Database Schema
 
@@ -155,11 +160,11 @@ npx prisma migrate reset
 # Then re-run: npx prisma migrate dev
 ```
 
-### Firebase Service Account Path
+### Google Application Default Credentials
 
-Verify the path exists:
+Verify ADC configuration:
 ```bash
-ls -l "C:\Users\HP\gps\gps-integration-b1a2e-firebase-adminsdk-fbsvc-85d47bd9e0.json"
+echo $GOOGLE_APPLICATION_CREDENTIALS
 ```
 
 ## Notes

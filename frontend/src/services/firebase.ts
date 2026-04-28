@@ -1,4 +1,4 @@
-import { initializeApp } from 'firebase/app';
+import { initializeApp, FirebaseApp } from 'firebase/app';
 import {
   browserLocalPersistence,
   browserSessionPersistence,
@@ -6,68 +6,75 @@ import {
   getAuth,
   inMemoryPersistence,
   setPersistence,
+  Auth,
 } from 'firebase/auth';
-import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
+import { getFunctions, connectFunctionsEmulator, Functions } from 'firebase/functions';
 
-const requiredEnv = {
-  VITE_FIREBASE_API_KEY: import.meta.env.VITE_FIREBASE_API_KEY,
-  VITE_FIREBASE_AUTH_DOMAIN: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  VITE_FIREBASE_PROJECT_ID: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  VITE_FIREBASE_STORAGE_BUCKET: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  VITE_FIREBASE_MESSAGING_SENDER_ID: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  VITE_FIREBASE_APP_ID: import.meta.env.VITE_FIREBASE_APP_ID,
-};
+let app: FirebaseApp;
+export let auth: Auth;
+export let functions: Functions;
 
-const missingFirebaseEnv = Object.entries(requiredEnv)
-  .filter(([, value]) => !value)
-  .map(([key]) => key);
+async function configureAuthPersistence(authInstance: Auth) {
+  try {
+    await setPersistence(authInstance, browserLocalPersistence);
+    return;
+  } catch (err) {
+    console.warn('Local persistence failed:', err);
+  }
 
-if (missingFirebaseEnv.length > 0) {
-  throw new Error(`Missing Firebase environment variables: ${missingFirebaseEnv.join(', ')}`);
+  try {
+    await setPersistence(authInstance, browserSessionPersistence);
+    return;
+  } catch (err) {
+    console.warn('Session persistence failed:', err);
+  }
+
+  try {
+    await setPersistence(authInstance, inMemoryPersistence);
+  } catch (err) {
+    console.warn('In-memory persistence failed:', err);
+  }
 }
 
-const firebaseConfig = {
-  apiKey: requiredEnv.VITE_FIREBASE_API_KEY as string,
-  authDomain: requiredEnv.VITE_FIREBASE_AUTH_DOMAIN as string,
-  projectId: requiredEnv.VITE_FIREBASE_PROJECT_ID as string,
-  storageBucket: requiredEnv.VITE_FIREBASE_STORAGE_BUCKET as string,
-  messagingSenderId: requiredEnv.VITE_FIREBASE_MESSAGING_SENDER_ID as string,
-  appId: requiredEnv.VITE_FIREBASE_APP_ID as string,
-};
-
-const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
-export const functions = getFunctions(app);
-
-const configureAuthPersistence = async () => {
+export async function initFirebase() {
   try {
-    await setPersistence(auth, browserLocalPersistence);
-    return;
-  } catch {
-    // Continue to session fallback.
+    // 🔥 Fetch config from backend
+    const res = await fetch('http://localhost:3002/config/firebase');
+
+    if (!res.ok) {
+      throw new Error(`Backend error: ${res.status}`);
+    }
+
+    const firebaseConfig = await res.json();
+
+    if (!firebaseConfig?.apiKey) {
+      throw new Error('Invalid Firebase config received from backend');
+    }
+
+    // Initialize Firebase
+    app = initializeApp(firebaseConfig);
+    auth = getAuth(app);
+    functions = getFunctions(app);
+
+    await configureAuthPersistence(auth);
+
+    // Emulators (only in dev)
+    if (import.meta.env.DEV && import.meta.env.VITE_USE_EMULATORS === 'true') {
+      connectAuthEmulator(auth, 'http://localhost:9099');
+      connectFunctionsEmulator(functions, 'localhost', 5001);
+      console.log('🔧 Firebase Emulators connected');
+    }
+
+    return app;
+  } catch (error) {
+    console.error('❌ Firebase initialization failed:', error);
+    throw error;
   }
-
-  try {
-    await setPersistence(auth, browserSessionPersistence);
-    return;
-  } catch {
-    // Continue to in-memory fallback.
-  }
-
-  try {
-    await setPersistence(auth, inMemoryPersistence);
-  } catch {
-    // Ignore persistence setup failures; auth can still work for current page lifecycle.
-  }
-};
-
-void configureAuthPersistence();
-
-// Connect to emulators in development
-if (import.meta.env.DEV && import.meta.env.VITE_USE_EMULATORS === 'true') {
-  connectAuthEmulator(auth, 'http://localhost:9099');
-  connectFunctionsEmulator(functions, 'localhost', 5001);
-  console.log('🔧 Connected to Firebase Emulators (Auth + Functions)');
 }
 
-export default app;
+export default function getFirebaseApp(): FirebaseApp {
+  if (!app) {
+    throw new Error('Firebase not initialized. Call initFirebase() first.');
+  }
+  return app;
+}

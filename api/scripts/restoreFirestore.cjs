@@ -1,18 +1,25 @@
-const fs = require('fs');
 const { initializeApp, cert } = require('firebase-admin/app');
 const { getFirestore } = require('firebase-admin/firestore');
 const { PrismaClient } = require('@prisma/client');
+const { loadSecrets, getJsonSecret, getSecret } = require('./secrets-manager.cjs');
 
-const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH;
-if (!serviceAccountPath || !fs.existsSync(serviceAccountPath)) {
-  throw new Error(`FIREBASE_SERVICE_ACCOUNT_PATH is invalid: ${serviceAccountPath || 'undefined'}`);
+;(async () => {
+
+async function initializeFirebase() {
+  await loadSecrets({ secrets: ['FIREBASE_SERVICE_ACCOUNT_JSON', 'FIREBASE_PROJECT_ID'] });
+
+  const serviceAccount = getJsonSecret('FIREBASE_SERVICE_ACCOUNT_JSON');
+  if (!serviceAccount) {
+    throw new Error('FIREBASE_SERVICE_ACCOUNT_JSON is missing from Secret Manager.');
+  }
+
+  initializeApp({
+    credential: cert(serviceAccount),
+    projectId: String(getSecret('FIREBASE_PROJECT_ID') || serviceAccount.project_id || '').trim() || undefined,
+  });
 }
 
-const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
-initializeApp({
-  credential: cert(serviceAccount),
-  projectId: process.env.FIREBASE_PROJECT_ID,
-});
+await initializeFirebase();
 
 const db = getFirestore();
 const prisma = new PrismaClient();
@@ -243,3 +250,5 @@ async function main() {
 }
 
 main();
+
+})();

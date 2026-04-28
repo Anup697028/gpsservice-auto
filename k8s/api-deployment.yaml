@@ -21,28 +21,5 @@ spec:
           value: "3002"
         - name: NODE_ENV
           value: "production"
-        - name: DATABASE_URL_FILE
-          value: /run/secrets/database-url
-        - name: FIREBASE_SERVICE_ACCOUNT_PATH
-          value: /run/secrets/firebase-service-account.json
-        volumeMounts:
-        - name: database-url
-          mountPath: /run/secrets/database-url
-          subPath: database-url
-          readOnly: true
-        - name: firebase-service-account
-          mountPath: /run/secrets/firebase-service-account.json
-          subPath: firebase-service-account.json
-          readOnly: true
         ports:
         - containerPort: 3002
-      volumes:
-      - name: database-url
-        secret:
-          secretName: gps-api-secrets
-          items:
-          - key: DATABASE_URL
-            path: database-url
-      - name: firebase-service-account
-        secret:
-          secretName: firebase-service-account

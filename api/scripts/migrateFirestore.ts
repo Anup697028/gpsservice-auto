@@ -1,21 +1,18 @@
 import { initializeApp, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { PrismaClient } from '@prisma/client';
-import fs from 'fs';
-import path from 'path';
-import dotenv from 'dotenv';
+import { getJsonSecret, getSecret, loadSecrets } from '../src/secretManager.js';
 
-dotenv.config();
+await loadSecrets({ secrets: ['FIREBASE_SERVICE_ACCOUNT_JSON', 'FIREBASE_PROJECT_ID'] });
 
-const firebaseServiceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH;
-if (!firebaseServiceAccountPath || !fs.existsSync(firebaseServiceAccountPath)) {
-  throw new Error(`FIREBASE_SERVICE_ACCOUNT_PATH is invalid: ${firebaseServiceAccountPath || 'undefined'}`);
+const serviceAccount = getJsonSecret<Record<string, unknown>>('FIREBASE_SERVICE_ACCOUNT_JSON');
+if (!serviceAccount) {
+  throw new Error('FIREBASE_SERVICE_ACCOUNT_JSON is missing from Secret Manager.');
 }
-const serviceAccount = JSON.parse(fs.readFileSync(firebaseServiceAccountPath, 'utf-8'));
 
 initializeApp({
   credential: cert(serviceAccount),
-  projectId: process.env.FIREBASE_PROJECT_ID,
+  projectId: String(getSecret('FIREBASE_PROJECT_ID') || serviceAccount.project_id || '').trim() || undefined,
 });
 
 const db = getFirestore();

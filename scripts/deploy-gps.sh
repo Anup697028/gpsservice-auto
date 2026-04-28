@@ -57,6 +57,6 @@ docker build \
 	--build-arg VITE_API_BASE_URL="$VITE_API_BASE_URL" \
 	--build-arg VITE_FO_API_BASE_URL="$VITE_FO_API_BASE_URL" \
 	-t "$FE_IMAGE" \
-	"$DOCKER_PROJECT_ROOT"
+	"$DOCKER_PROJECT_ROOT/frontend"
 
 source "$SCRIPT_DIR/deploy-gps.run.sh"

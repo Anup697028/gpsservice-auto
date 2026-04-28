@@ -2,16 +2,13 @@ import express from 'express';
 import type { Express, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import dotenv from 'dotenv';
 import { Prisma, PrismaClient } from '@prisma/client';
 import { initializeApp, cert } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
-import fs from 'fs';
-
-dotenv.config();
+import { getJsonSecret, getRequiredSecret, getSecret, loadSecrets } from './secretManager';
 
 const app: Express = express();
-const prisma = new PrismaClient();
+let prisma: PrismaClient;
 
 // ============================================================
 // MIDDLEWARE
@@ -31,26 +28,39 @@ app.use((req: Request, _res: Response, next: NextFunction) => {
   next();
 });
 
-// Initialize Firebase Admin SDK
-const firebaseServiceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH;
 const isProduction = String(process.env.NODE_ENV || '').toLowerCase() === 'production';
 let auth: ReturnType<typeof getAuth> | null = null;
+let allowedDomain = 'letstransport.team';
+let firebaseProjectId = '';
+const DEFAULT_SMTP_FROM = 'no-reply@gps-automation.local';
+const REQUIRED_SECRET_NAMES = [
+  'DATABASE_URL',
+  'FIREBASE_SERVICE_ACCOUNT_JSON',
+  'SMTP_HOST',
+  'SMTP_PORT',
+  'SMTP_USER',
+  'SMTP_PASS',
+  'SMTP_FROM',
+  'SMTP_TLS_REJECT_UNAUTHORIZED',
+  'VENDOR_EMAILS',
+  'COMPANY_EMAIL_DOMAIN',
+  'FIREBASE_PROJECT_ID',
+];
 
-if (firebaseServiceAccountPath && fs.existsSync(firebaseServiceAccountPath)) {
-  const serviceAccount = JSON.parse(fs.readFileSync(firebaseServiceAccountPath, 'utf-8'));
-  initializeApp({
-    credential: cert(serviceAccount),
-    projectId: process.env.FIREBASE_PROJECT_ID,
-  });
+function getSmtpConfig() {
+  const smtpHost = getRequiredSecret('SMTP_HOST');
+  const smtpPort = parseInt(getRequiredSecret('SMTP_PORT') || '587', 10);
+  const smtpUser = getRequiredSecret('SMTP_USER');
+  const smtpPass = getRequiredSecret('SMTP_PASS');
+  const smtpFrom = getSecret('SMTP_FROM') || smtpUser || DEFAULT_SMTP_FROM;
+  const rejectUnauthorized = String(getSecret('SMTP_TLS_REJECT_UNAUTHORIZED') || 'true').toLowerCase() !== 'false';
 
-  auth = getAuth();
-} else if (isProduction) {
-  console.error('❌ Firebase service account JSON not found at:', firebaseServiceAccountPath);
-  process.exit(1);
-} else {
-  console.warn('⚠️ Firebase Admin is disabled because FIREBASE_SERVICE_ACCOUNT_PATH is missing.');
+  return { smtpHost, smtpPort, smtpUser, smtpPass, smtpFrom, rejectUnauthorized };
 }
-const allowedDomain = process.env.COMPANY_EMAIL_DOMAIN || 'letstransport.team';
+
+function getVendorEmailMapRaw() {
+  return String(getSecret('VENDOR_EMAILS') || '').trim();
+}
 
 const normalizeEmail = (value: unknown) => String(value || '').trim().toLowerCase();
 
@@ -214,7 +224,9 @@ async function getOrCreateUserFromToken(req: AuthedRequest, options?: { allowNon
   const uid = req.firebaseUid || '';
   const email = req.firebaseEmail || '';
   const emailNormalized = normalizeEmail(email);
-  const nextName = String(req.user?.name || '').trim() || null;
+  const tokenName = String(req.user?.name || '').trim();
+  const nextName = tokenName || null;
+  const hasTokenName = tokenName.length > 0;
   if (!uid || !email) {
     throw new Error('Unauthorized: token missing uid/email');
   }
@@ -253,7 +265,7 @@ async function getOrCreateUserFromToken(req: AuthedRequest, options?: { allowNon
     }
 
     const emailNeedsSync = existingById.email !== email || existingById.emailNormalized !== emailNormalized;
-    const nameNeedsSync = existingById.name !== nextName;
+    const nameNeedsSync = hasTokenName && existingById.name !== nextName;
 
     if (emailNeedsSync || nameNeedsSync) {
       return prisma.user.update({
@@ -269,7 +281,7 @@ async function getOrCreateUserFromToken(req: AuthedRequest, options?: { allowNon
   }
 
   if (existingByEmail) {
-    const resolvedName = nextName || existingByEmail.name || email;
+    const resolvedName = hasTokenName ? nextName : existingByEmail.name || email;
 
     if (existingByEmail.id !== uid) {
       return prisma.$transaction(async (tx) => {
@@ -319,7 +331,7 @@ async function getOrCreateUserFromToken(req: AuthedRequest, options?: { allowNon
         id: uid,
         email,
         emailNormalized,
-        name: req.user?.name || null,
+        name: nextName,
         role: null,
       },
     });
@@ -703,6 +715,22 @@ app.get('/test/request-id', (req: Request, res: Response) => {
   res.json({ requestIdFormat: 'REQ-XXXXXX', examples: formatted });
 });
 
+app.get("/config/firebase", (req, res) => {
+  try {
+    return res.json({
+      apiKey: getRequiredSecret("FIREBASE_API_KEY"),
+      authDomain: getRequiredSecret("FIREBASE_AUTH_DOMAIN"),
+      projectId: getRequiredSecret("FIREBASE_PROJECT_ID"),
+      storageBucket: getRequiredSecret("FIREBASE_STORAGE_BUCKET"),
+      messagingSenderId: getRequiredSecret("FIREBASE_MESSAGING_SENDER_ID"),
+      appId: getRequiredSecret("FIREBASE_APP_ID"),
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Firebase config failed" });
+  }
+});
+
 /**
  * Send OTP email (public, used before/without authenticated session)
  */
@@ -715,18 +743,7 @@ app.post('/sendOTP', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Email and OTP are required.' });
     }
 
-    const smtpHost = process.env.SMTP_HOST;
-    const smtpPort = parseInt(process.env.SMTP_PORT || '587', 10);
-    const smtpUser = process.env.SMTP_USER;
-    const smtpPass = process.env.SMTP_PASS;
-    const smtpFrom = process.env.SMTP_FROM || smtpUser || 'no-reply@gps-automation.local';
-
-    if (!smtpHost || !smtpUser || !smtpPass) {
-      return res.status(503).json({
-        error: 'Failed to send OTP.',
-        details: 'SMTP is not configured on API server.',
-      });
-    }
+    const { smtpHost, smtpPort, smtpUser, smtpPass, smtpFrom, rejectUnauthorized } = getSmtpConfig();
 
     const nodemailer = require('nodemailer');
     const transporter = nodemailer.createTransport({
@@ -738,7 +755,7 @@ app.post('/sendOTP', async (req: Request, res: Response) => {
         pass: smtpPass,
       },
       tls: {
-        rejectUnauthorized: String(process.env.SMTP_TLS_REJECT_UNAUTHORIZED || 'true').toLowerCase() !== 'false',
+        rejectUnauthorized,
       },
     });
 
@@ -900,6 +917,14 @@ app.post('/requests', verifyFirebaseToken, checkCompanyDomain, async (req: Reque
 
     const baseStatus = String(body.status || 'PARALLEL_REVIEW').trim().toUpperCase() || 'PARALLEL_REVIEW';
 
+    const ltpocDetailsForCreate = ltpocDetails
+      .map((row: any) => ({
+        vehicleNumber: String(row?.vehicleNumber || '').trim() || null,
+        ltpocName: String(row?.ltpocName || row?.lptocName || '').trim() || null,
+        ltpocPhone: normalizePhone(row?.ltpocPhone || row?.lptocPhone || ''),
+      }))
+      .filter((row: any) => row.vehicleNumber || row.ltpocName || row.ltpocPhone);
+
     const createPayload = {
       firebaseId: String(body.id || '').trim() || null,
       status: baseStatus,
@@ -941,13 +966,7 @@ app.post('/requests', verifyFirebaseToken, checkCompanyDomain, async (req: Reque
         })),
       },
       ltpocDetails: {
-        create: ltpocDetails
-          .map((row: any) => ({
-            vehicleNumber: String(row?.vehicleNumber || '').trim() || null,
-            ltpocName: String(row?.ltpocName || row?.lptocName || '').trim() || null,
-            ltpocPhone: normalizePhone(row?.ltpocPhone || row?.lptocPhone || ''),
-          }))
-          .filter((row: any) => row.vehicleNumber || row.ltpocName || row.ltpocPhone), // Only save rows with at least one field
+        create: ltpocDetailsForCreate,
       },
       history: {
         create: incomingHistory.length > 0
@@ -1815,24 +1834,13 @@ app.post('/sendVendorBulkNotification', verifyFirebaseToken, checkCompanyDomain,
       return res.status(400).json({ error: 'vendorName and requestIds/rows are required.' });
     }
 
-    const smtpHost = process.env.SMTP_HOST;
-    const smtpPort = parseInt(process.env.SMTP_PORT || '587', 10);
-    const smtpUser = process.env.SMTP_USER;
-    const smtpPass = process.env.SMTP_PASS;
-    const smtpFrom = process.env.SMTP_FROM || smtpUser || 'no-reply@gps-automation.local';
-
-    if (!smtpHost || !smtpUser || !smtpPass) {
-      return res.status(500).json({
-        error: 'Failed to send vendor bulk notification',
-        details: 'SMTP is not configured on API server.',
-      });
-    }
+    const { smtpHost, smtpPort, smtpUser, smtpPass, smtpFrom, rejectUnauthorized } = getSmtpConfig();
 
     const normalizeVendorKey = (value: string) => String(value || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
     const vendorKey = normalizeVendorKey(vendorName);
     const vendorEmails = new Set<string>();
 
-    const envMapRaw = String(process.env.VENDOR_EMAILS || '').trim();
+    const envMapRaw = getVendorEmailMapRaw();
     if (envMapRaw) {
       envMapRaw
         .split(/[;,]/)
@@ -1851,12 +1859,6 @@ app.post('/sendVendorBulkNotification', verifyFirebaseToken, checkCompanyDomain,
             vendorEmails.add(parsedEmail);
           }
         });
-    }
-
-    const envSpecificKey = `VENDOR_EMAIL_${String(vendorName || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '_')}`;
-    const envSpecificEmail = String((process.env as Record<string, string | undefined>)[envSpecificKey] || '').trim().toLowerCase();
-    if (envSpecificEmail.includes('@')) {
-      vendorEmails.add(envSpecificEmail);
     }
 
     // Backward compatible defaults used by the local dev email workflow.
@@ -2025,7 +2027,7 @@ app.post('/sendVendorBulkNotification', verifyFirebaseToken, checkCompanyDomain,
         pass: smtpPass,
       },
       tls: {
-        rejectUnauthorized: String(process.env.SMTP_TLS_REJECT_UNAUTHORIZED || 'true').toLowerCase() !== 'false',
+        rejectUnauthorized,
       },
     });
 
@@ -2192,18 +2194,7 @@ app.post('/sendFoBulkNotification', verifyFirebaseToken, checkCompanyDomain, asy
       return res.status(400).json({ error: 'requestIds are required.' });
     }
 
-    const smtpHost = process.env.SMTP_HOST;
-    const smtpPort = parseInt(process.env.SMTP_PORT || '587', 10);
-    const smtpUser = process.env.SMTP_USER;
-    const smtpPass = process.env.SMTP_PASS;
-    const smtpFrom = process.env.SMTP_FROM || smtpUser || 'no-reply@gps-automation.local';
-
-    if (!smtpHost || !smtpUser || !smtpPass) {
-      return res.status(500).json({
-        error: 'Failed to send FO bulk notification',
-        details: 'SMTP is not configured on API server.',
-      });
-    }
+    const { smtpHost, smtpPort, smtpUser, smtpPass, smtpFrom, rejectUnauthorized } = getSmtpConfig();
 
     const nodemailer = require('nodemailer');
     const transporter = nodemailer.createTransport({
@@ -2215,7 +2206,7 @@ app.post('/sendFoBulkNotification', verifyFirebaseToken, checkCompanyDomain, asy
         pass: smtpPass,
       },
       tls: {
-        rejectUnauthorized: String(process.env.SMTP_TLS_REJECT_UNAUTHORIZED || 'true').toLowerCase() !== 'false',
+        rejectUnauthorized,
       },
     });
 
@@ -2280,7 +2271,7 @@ app.post('/sendFoBulkNotification', verifyFirebaseToken, checkCompanyDomain, asy
 
       const emails = new Set<string>();
 
-      const envMapRaw = String(process.env.VENDOR_EMAILS || '').trim();
+      const envMapRaw = getVendorEmailMapRaw();
       if (envMapRaw) {
         envMapRaw
           .split(/[;,]/)
@@ -2299,12 +2290,6 @@ app.post('/sendFoBulkNotification', verifyFirebaseToken, checkCompanyDomain, asy
               emails.add(parsedEmail);
             }
           });
-      }
-
-      const envSpecificKey = `VENDOR_EMAIL_${String(vendorName || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '_')}`;
-      const envSpecificEmail = String((process.env as Record<string, string | undefined>)[envSpecificKey] || '').trim().toLowerCase();
-      if (envSpecificEmail.includes('@')) {
-        emails.add(envSpecificEmail);
       }
 
       for (const vendorUser of vendorUsers) {
@@ -2616,6 +2601,30 @@ const PORT = parseInt(process.env.PORT || String(DEFAULT_PORT), 10);
 
 async function startServer() {
   try {
+    await loadSecrets({ secrets: REQUIRED_SECRET_NAMES });
+
+    const serviceAccount = getJsonSecret<Record<string, unknown>>('FIREBASE_SERVICE_ACCOUNT_JSON');
+    if (!serviceAccount) {
+      throw new Error('FIREBASE_SERVICE_ACCOUNT_JSON is missing from Secret Manager.');
+    }
+
+    firebaseProjectId = String(getSecret('FIREBASE_PROJECT_ID') || serviceAccount.project_id || '').trim();
+    allowedDomain = String(getSecret('COMPANY_EMAIL_DOMAIN') || 'letstransport.team').trim() || 'letstransport.team';
+    prisma = new PrismaClient({
+      datasources: {
+        db: {
+          url: getRequiredSecret('DATABASE_URL'),
+        },
+      },
+    });
+
+    initializeApp({
+      credential: cert(serviceAccount),
+      projectId: firebaseProjectId || undefined,
+    });
+
+    auth = getAuth();
+
     // Test database connection in production. In local/dev environments, keep the
     // API alive so the frontend receives HTTP errors instead of connection refusals.
     try {
@@ -2647,17 +2656,23 @@ async function startServer() {
       console.log(`   GET  /requests/:requestId - Get request details (auth required)`);
       console.log(`\n🔐 Protected endpoints require Firebase token + company email (@${allowedDomain})\n`);
     });
+
+    process.on('SIGINT', async () => {
+      console.log('\n📌 Shutting down...');
+      await prisma.$disconnect();
+      process.exit(0);
+    });
+
+    process.on('SIGTERM', async () => {
+      console.log('SIGTERM received, shutting down gracefully...');
+      await prisma.$disconnect();
+      process.exit(0);
+    });
   } catch (error) {
     console.error('❌ Failed to start server:', error);
     process.exit(1);
   }
 }
 
-startServer();
-
-// Graceful shutdown
-process.on('SIGINT', async () => {
-  console.log('\n📌 Shutting down...');
-  await prisma.$disconnect();
-  process.exit(0);
-});
+// Export app and prisma for use in index.ts (with Google Secret Manager)
+export { app, prisma, startServer };
