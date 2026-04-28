@@ -1,4 +1,4 @@
-﻿import React from 'react';
+﻿import React, { useEffect, useState, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Login } from './pages/Login';
@@ -38,12 +38,93 @@ const ROLE_ROUTE_MAP = {
   VENDOR: '/vendor-dashboard',
 };
 
+const MissingRoleState = () => {
+  const { logout, refreshProfile, userRole, profileLoading } = useAuth();
+  const [retrying, setRetrying] = useState(true);
+  const attemptsRef = useRef(3);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const attempt = async () => {
+      if (!mounted) return;
+      if (profileLoading) {
+        // wait for profile loading to finish; effect will re-run when `profileLoading` changes
+        return;
+      }
+
+      if (userRole) {
+        setRetrying(false);
+        return;
+      }
+
+      if (attemptsRef.current <= 0) {
+        setRetrying(false);
+        return;
+      }
+
+      try {
+        await refreshProfile();
+      } catch (e) {
+        // ignore transient errors
+      }
+
+      attemptsRef.current -= 1;
+
+      if (attemptsRef.current > 0 && mounted) {
+        setTimeout(attempt, 2000);
+      } else if (mounted) {
+        setRetrying(false);
+      }
+    };
+
+    attempt();
+
+    return () => {
+      mounted = false;
+    };
+  }, [profileLoading, userRole, refreshProfile]);
+
+  if (profileLoading || retrying) {
+    return <Loader />;
+  }
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10">
+      <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+        <p className="text-xs font-bold uppercase tracking-[0.25em] text-[#f26a21]">Account setup</p>
+        <h1 className="mt-3 text-2xl font-bold tracking-tight text-slate-900">Your role is not assigned yet</h1>
+        <p className="mt-3 text-sm leading-6 text-slate-600">
+          Your login is valid, but the app could not resolve a dashboard role for this account yet.
+          Retry a few times – if the issue persists, sign out and contact an administrator.
+        </p>
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
+          <button
+            type="button"
+            onClick={() => void refreshProfile()}
+            className="rounded-lg bg-[#f26a21] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
+          >
+            Retry
+          </button>
+          <button
+            type="button"
+            onClick={() => void logout()}
+            className="rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50"
+          >
+            Sign Out
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const ProtectedRoute = ({ children, requiredRole = null }) => {
-  const { user, userRole, loading } = useAuth();
+  const { user, userRole, loading, profileLoading } = useAuth();
   const normalizedUserRole = normalizeRole(userRole);
   const normalizedRequiredRole = normalizeRole(requiredRole);
 
-  if (loading) {
+  if (loading || profileLoading) {
     return <Loader />;
   }
 
@@ -53,7 +134,7 @@ const ProtectedRoute = ({ children, requiredRole = null }) => {
 
   if (normalizedRequiredRole) {
     if (!normalizedUserRole) {
-      return <Loader />;
+      return <MissingRoleState />;
     }
 
     if (normalizedUserRole !== normalizedRequiredRole) {
@@ -65,10 +146,10 @@ const ProtectedRoute = ({ children, requiredRole = null }) => {
 };
 
 const DashboardRedirect = () => {
-  const { user, userRole, loading } = useAuth();
+  const { user, userRole, loading, profileLoading } = useAuth();
   const normalizedUserRole = normalizeRole(userRole);
 
-  if (loading) {
+  if (loading || profileLoading) {
     return <Loader />;
   }
 
@@ -77,7 +158,7 @@ const DashboardRedirect = () => {
   }
 
   if (!normalizedUserRole) {
-    return <Loader />;
+    return <MissingRoleState />;
   }
 
   const nextRoute = ROLE_ROUTE_MAP[normalizedUserRole] || '/unauthorized';

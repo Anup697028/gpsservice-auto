@@ -79,6 +79,18 @@ const markLocalApiOffline = () => {
   writeLocalApiHealth({ status: 'offline', lastFailureAt: Date.now() });
 };
 
+export const resetLocalApiHealth = () => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    window.localStorage.removeItem(LOCAL_API_HEALTH_CACHE_KEY);
+  } catch {
+    // Ignore storage failures and continue with a fresh probe.
+  }
+};
+
 const isLocalhostCandidate = (value) => isLocalhostLike(value) || value === '/api';
 
 export const buildApiBaseCandidates = (...inputs) => {

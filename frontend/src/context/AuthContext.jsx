@@ -469,6 +469,7 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     logout,
+    refreshProfile,
     saveUserProfile,
     changePassword,
   };

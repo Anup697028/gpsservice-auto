@@ -9,6 +9,7 @@ import {
   Auth,
 } from 'firebase/auth';
 import { getFunctions, connectFunctionsEmulator, Functions } from 'firebase/functions';
+import { resetLocalApiHealth } from './apiBase';
 
 let app: FirebaseApp;
 export let auth: Auth;
@@ -57,6 +58,7 @@ export async function initFirebase() {
     functions = getFunctions(app);
 
     await configureAuthPersistence(auth);
+    resetLocalApiHealth();
 
     // Emulators (only in dev)
     if (import.meta.env.DEV && import.meta.env.VITE_USE_EMULATORS === 'true') {
