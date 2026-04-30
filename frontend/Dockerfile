@@ -1,11 +1,9 @@
 FROM node:20-alpine AS build
 WORKDIR /app
 
-# Inject frontend API endpoints at build time for Vite.
-ARG VITE_API_BASE_URL
-ARG VITE_FO_API_BASE_URL
-ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
-ENV VITE_FO_API_BASE_URL=${VITE_FO_API_BASE_URL}
+# Inject the backend API URL at build time for Vite.
+ARG BACKEND_API_URL=/api
+ENV BACKEND_API_URL=${BACKEND_API_URL}
 
 # Copy dependency manifests first for better layer caching.
 COPY package*.json ./

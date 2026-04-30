@@ -1,5 +1,6 @@
 import { auth } from './firebase';
 import { fetchWithApiFallback } from './apiBase';
+import BACKEND_API_URL from '../../../config/api.js';
 
 type OtpPayload = {
   email: string;
@@ -93,7 +94,7 @@ type RhDirectoryEntry = {
 };
 
 const apiFetch = async (path: string, init: RequestInit) =>
-  fetchWithApiFallback(path, init, import.meta.env.VITE_API_BASE_URL, import.meta.env.VITE_FUNCTIONS_BASE_URL);
+  fetchWithApiFallback(path, init, BACKEND_API_URL, import.meta.env.VITE_API_BASE_URL, import.meta.env.VITE_FUNCTIONS_BASE_URL);
 
 const parseApiError = async (response: Response, fallbackMessage: string) => {
   const responseData = await response.json().catch(() => ({}));

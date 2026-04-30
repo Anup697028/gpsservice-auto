@@ -1,5 +1,6 @@
 import { auth } from './firebase';
 import { fetchWithApiFallback } from './apiBase';
+import BACKEND_API_URL from '../../../config/api.js';
 
 export type VehicleRecord = {
   vehicleNumber: string;
@@ -66,6 +67,7 @@ const fetchJson = async (path: string, init?: RequestInit) => {
   const response = await fetchWithApiFallback(
     path,
     init,
+    BACKEND_API_URL,
     import.meta.env.VITE_FO_API_BASE_URL,
     import.meta.env.VITE_API_BASE_URL,
     import.meta.env.VITE_FUNCTIONS_BASE_URL,

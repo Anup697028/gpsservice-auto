@@ -2646,7 +2646,7 @@ async function startServer() {
     console.log(`✅ Company email domain: @${allowedDomain}`);
 
     app.listen(PORT, () => {
-      console.log(`\n🚀 GPS API Server running on http://localhost:${PORT}`);
+      console.log(`\n🚀 GPS API Server running on http://127.0.0.1:${PORT}`);
       console.log(`\n📝 Endpoints:`);
       console.log(`   GET  /health - Health check`);
       console.log(`   GET  /health/db - Database health check`);

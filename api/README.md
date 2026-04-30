@@ -47,7 +47,7 @@ This script will:
 npm run dev
 ```
 
-Server will start on `http://localhost:3001`
+Server will start on `http://127.0.0.1:3001`
 
 For production containers, `npm run start:prod` now waits for Postgres, applies committed Prisma migrations, baselines legacy databases that were created before migration history existed, and restores core data from Firestore when the database is empty before starting the API.
 
@@ -117,7 +117,7 @@ Key tables:
 ### Test Health Check
 
 ```bash
-curl http://localhost:3001/health
+curl http://127.0.0.1:3001/health
 ```
 
 ### Test with Firebase Auth Token
@@ -127,13 +127,13 @@ curl http://localhost:3001/health
 
 ```bash
 curl -H "Authorization: Bearer YOUR_TOKEN" \
-  http://localhost:3001/users/me
+  http://127.0.0.1:3001/users/me
 ```
 
 ### Test Request ID Formatting
 
 ```bash
-curl http://localhost:3001/test/request-id
+curl http://127.0.0.1:3001/test/request-id
 ```
 
 ## Next Steps
@@ -150,7 +150,7 @@ curl http://localhost:3001/test/request-id
 ### Database Connection Failed
 
 ```bash
-psql "host=localhost port=5432 dbname=postgres user=postgres sslmode=disable" -c "SELECT 1;"
+psql "host=127.0.0.1 port=5432 dbname=postgres user=postgres sslmode=disable" -c "SELECT 1;"
 ```
 
 ### Prisma Migration Issues

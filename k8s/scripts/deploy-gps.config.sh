@@ -14,8 +14,7 @@ if [ -f /proc/version ] && grep -qi microsoft /proc/version && [[ "$FIREBASE_SA_
 	FIREBASE_SA_FILE="${DRIVE_LETTER^}:/${FIREBASE_SA_FILE:7}"
 fi
 
-VITE_API_BASE_URL="${VITE_API_BASE_URL:-/api}"
-VITE_FO_API_BASE_URL="${VITE_FO_API_BASE_URL:-/api}"
+BACKEND_API_URL="${BACKEND_API_URL:-/api}"
 DATABASE_URL="${DATABASE_URL:-postgresql://postgres:pass@gps-db:5432/postgres}"
 POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-pass}"
 FIREBASE_PROJECT_ID="${FIREBASE_PROJECT_ID:-gps-integration-b1a2e}"

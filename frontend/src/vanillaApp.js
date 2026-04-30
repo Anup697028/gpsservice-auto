@@ -10,6 +10,7 @@ import { requestService } from './services/requestService';
 import { functionsService } from './services/functionsService';
 import { foApiService } from './services/foApiService';
 import { fetchWithApiFallback } from './services/apiBase';
+import BACKEND_API_URL from '../../config/api.js';
 import { REQUEST_STATUSES } from './types/workflow';
 import { getUnifiedStatusClass, getUnifiedStatusLabel } from './utils/statusMapping';
 
@@ -3215,7 +3216,7 @@ const subscribeRequests = () => {
     const loadRhRequests = async () => {
       try {
         const response = await fetch(
-          `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3002'}/requests/for-rh`,
+          `${BACKEND_API_URL || '/api'}/requests/for-rh`,
           {
             headers: {
               'Authorization': `Bearer ${await state.user.getIdToken()}`
@@ -3266,7 +3267,7 @@ const subscribeRhMembers = () => {
   const loadRhMembers = async () => {
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3002'}/users?role=RH`,
+        `${BACKEND_API_URL || '/api'}/users?role=RH`,
         {
           headers: {
             'Authorization': `Bearer ${await state.user.getIdToken()}`

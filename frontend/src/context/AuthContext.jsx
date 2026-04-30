@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { auth } from '../services/firebase';
-import { buildApiBaseCandidates, fetchWithApiFallback } from '../services/apiBase';
+import { fetchWithApiFallback } from '../services/apiBase';
+import BACKEND_API_URL from '../../../config/api.js';
 import {
   EmailAuthProvider,
   onAuthStateChanged,
@@ -13,11 +14,9 @@ import {
 
 const AuthContext = createContext();
 
-const API_BASE_URL = buildApiBaseCandidates(
-  import.meta.env.VITE_API_BASE_URL,
-  import.meta.env.VITE_FUNCTIONS_BASE_URL,
-)[0] || '/api';
+const API_BASE_URL = BACKEND_API_URL || '/api';
 const PROFILE_CACHE_PREFIX = 'gps.auth.profile.v1:';
+const PROFILE_COMPLETED_CACHE_PREFIX = 'gps.auth.profile-completed.v1:';
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -36,6 +35,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const getProfileCacheKey = (uid) => `${PROFILE_CACHE_PREFIX}${String(uid || '').trim()}`;
+  const getProfileCompletedCacheKey = (uid) => `${PROFILE_COMPLETED_CACHE_PREFIX}${String(uid || '').trim()}`;
 
   const readCachedProfile = (uid) => {
     if (typeof window === 'undefined' || !uid) {
@@ -62,6 +62,30 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const readProfileCompletedSticky = (uid) => {
+    if (typeof window === 'undefined' || !uid) {
+      return false;
+    }
+
+    try {
+      return window.localStorage.getItem(getProfileCompletedCacheKey(uid)) === '1';
+    } catch {
+      return false;
+    }
+  };
+
+  const writeProfileCompletedSticky = (uid, isCompleted) => {
+    if (typeof window === 'undefined' || !uid || !isCompleted) {
+      return;
+    }
+
+    try {
+      window.localStorage.setItem(getProfileCompletedCacheKey(uid), '1');
+    } catch {
+      // Ignore storage quota/privacy errors.
+    }
+  };
+
   const clearCachedProfile = (uid) => {
     if (typeof window === 'undefined' || !uid) {
       return;
@@ -80,6 +104,8 @@ export const AuthProvider = ({ children }) => {
       return cachedProfile;
     }
 
+    const stickyCompleted = readProfileCompletedSticky(currentUser?.uid);
+
     return {
       id: currentUser?.uid ?? null,
       email: currentUser?.email ?? null,
@@ -87,7 +113,7 @@ export const AuthProvider = ({ children }) => {
       employeeId: null,
       phoneNumber: null,
       role: null,
-      profileCompleted: false,
+      profileCompleted: stickyCompleted,
     };
   };
 
@@ -101,12 +127,8 @@ export const AuthProvider = ({ children }) => {
       return false;
     }
 
-    const configuredBase = String(import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_FUNCTIONS_BASE_URL || '').trim();
-    if (!configuredBase) {
-      return true;
-    }
-
-    return /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(configuredBase);
+    const configuredBase = String(API_BASE_URL || '').trim();
+    return !configuredBase;
   };
 
   const isCompanyEmail = (value) => {
@@ -205,7 +227,11 @@ export const AuthProvider = ({ children }) => {
     }
 
     const mergedProfile = mergeProfilePayload(payload, cachedProfile);
+    if (!resolveProfileCompleted(mergedProfile) && readProfileCompletedSticky(currentUser.uid)) {
+      mergedProfile.profileCompleted = true;
+    }
     writeCachedProfile(currentUser.uid, mergedProfile);
+    writeProfileCompletedSticky(currentUser.uid, resolveProfileCompleted(mergedProfile));
 
     return mergedProfile;
   };
@@ -230,6 +256,7 @@ export const AuthProvider = ({ children }) => {
         ...(updates || {}),
       };
       writeCachedProfile(currentUser.uid, fallbackProfile);
+      writeProfileCompletedSticky(currentUser.uid, resolveProfileCompleted(fallbackProfile));
       return fallbackProfile;
     }
 
@@ -240,6 +267,7 @@ export const AuthProvider = ({ children }) => {
         ...(updates || {}),
       };
       writeCachedProfile(currentUser.uid, fallbackProfile);
+      writeProfileCompletedSticky(currentUser.uid, resolveProfileCompleted(fallbackProfile));
       return fallbackProfile;
     }
 
@@ -249,6 +277,7 @@ export const AuthProvider = ({ children }) => {
         ...(updates || {}),
       };
       writeCachedProfile(currentUser.uid, fallbackProfile);
+      writeProfileCompletedSticky(currentUser.uid, resolveProfileCompleted(fallbackProfile));
       return fallbackProfile;
     }
 
@@ -259,6 +288,7 @@ export const AuthProvider = ({ children }) => {
 
     const mergedProfile = mergeProfilePayload(payload, cachedProfile);
     writeCachedProfile(currentUser.uid, mergedProfile);
+    writeProfileCompletedSticky(currentUser.uid, resolveProfileCompleted(mergedProfile));
 
     return mergedProfile;
   };
@@ -274,6 +304,10 @@ export const AuthProvider = ({ children }) => {
       ...profileData,
       profileCompleted: resolveProfileCompleted(profileData),
     };
+
+    if (user?.uid) {
+      writeProfileCompletedSticky(user.uid, normalizedProfile.profileCompleted);
+    }
 
     setUserProfile(normalizedProfile);
     setUserRole(normalizedProfile.role ?? null);
@@ -456,7 +490,13 @@ export const AuthProvider = ({ children }) => {
     await patchCurrentUserProfile({ passwordUpdatedAt: new Date().toISOString() }, activeUser);
   };
 
-  const needsProfileCompletion = Boolean(user && !profileLoading && userProfile && !resolveProfileCompleted(userProfile));
+  const needsProfileCompletion = Boolean(
+    user &&
+      !profileLoading &&
+      userProfile &&
+      !resolveProfileCompleted(userProfile) &&
+      !readProfileCompletedSticky(user.uid)
+  );
 
   const value = {
     user,

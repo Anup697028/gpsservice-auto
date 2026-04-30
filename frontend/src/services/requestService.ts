@@ -1,6 +1,7 @@
 import { auth } from './firebase';
 import { functionsService } from './functionsService';
 import { fetchWithApiFallback } from './apiBase';
+import BACKEND_API_URL from '../../../config/api.js';
 import {
   WORKFLOW_ACTIONS,
   type RequestRecord,
@@ -55,6 +56,7 @@ const apiRequest = async (path: string, init: RequestInit = {}) => {
         ...(init.headers || {}),
       },
     },
+    BACKEND_API_URL,
     import.meta.env.VITE_API_BASE_URL,
     import.meta.env.VITE_FUNCTIONS_BASE_URL,
   );

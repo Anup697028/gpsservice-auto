@@ -17,7 +17,7 @@ docker run --rm --network gps-net -e PGPASSWORD="$POSTGRES_PASSWORD" postgres:16
 docker run -d --name gps-api --network gps-net -p "$API_PORT:3002" -e DATABASE_URL="$DATABASE_URL" -e FIREBASE_SERVICE_ACCOUNT_PATH=/app/secrets/firebase-service-account.json -e FIREBASE_PROJECT_ID="$FIREBASE_PROJECT_ID" -e COMPANY_EMAIL_DOMAIN="$COMPANY_EMAIL_DOMAIN" -v "$FIREBASE_SA_FILE:/app/secrets/firebase-service-account.json:ro" "$API_IMAGE"
 api_ready=0
 for i in $(seq 1 60); do
-	if docker exec gps-api wget --quiet --tries=1 --spider http://localhost:3002/health >/dev/null 2>&1; then
+	if docker exec gps-api wget --quiet --tries=1 --spider http://127.0.0.1:3002/health >/dev/null 2>&1; then
 		api_ready=1
 		break
 	fi

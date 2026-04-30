@@ -9,7 +9,7 @@ import {
   Auth,
 } from 'firebase/auth';
 import { getFunctions, connectFunctionsEmulator, Functions } from 'firebase/functions';
-import { resetLocalApiHealth } from './apiBase';
+import BACKEND_API_URL from '../../../config/api.js';
 
 let app: FirebaseApp;
 export let auth: Auth;
@@ -40,7 +40,7 @@ async function configureAuthPersistence(authInstance: Auth) {
 export async function initFirebase() {
   try {
     // 🔥 Fetch config from backend
-    const res = await fetch('http://localhost:3002/config/firebase');
+    const res = await fetch(`${BACKEND_API_URL || '/api'}/config/firebase`);
 
     if (!res.ok) {
       throw new Error(`Backend error: ${res.status}`);
@@ -58,12 +58,12 @@ export async function initFirebase() {
     functions = getFunctions(app);
 
     await configureAuthPersistence(auth);
-    resetLocalApiHealth();
 
     // Emulators (only in dev)
     if (import.meta.env.DEV && import.meta.env.VITE_USE_EMULATORS === 'true') {
-      connectAuthEmulator(auth, 'http://localhost:9099');
-      connectFunctionsEmulator(functions, 'localhost', 5001);
+      const emulatorHost = window.location.hostname || '127.0.0.1';
+      connectAuthEmulator(auth, `${window.location.protocol}//${emulatorHost}:9099`);
+      connectFunctionsEmulator(functions, emulatorHost, 5001);
       console.log('🔧 Firebase Emulators connected');
     }
 

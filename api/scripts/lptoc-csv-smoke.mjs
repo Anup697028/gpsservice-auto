@@ -2,13 +2,18 @@ import process from 'node:process';
 import admin from 'firebase-admin';
 import { PrismaClient } from '@prisma/client';
 import secretsManager from './secrets-manager.cjs';
+import BACKEND_API_URL from '../../config/api.js';
 
 const { loadSecrets, getJsonSecret } = secretsManager;
 const apiKey = process.env.VITE_FIREBASE_API_KEY;
-const apiBaseUrl = (process.env.VITE_API_BASE_URL || 'http://localhost:3002').replace(/\/$/, '');
+const apiBaseUrl = String(BACKEND_API_URL || process.env.BACKEND_API_URL || process.env.REACT_APP_BACKEND_API_URL || process.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
 
 if (!apiKey) {
   throw new Error('VITE_FIREBASE_API_KEY missing from the environment');
+}
+
+if (!apiBaseUrl) {
+  throw new Error('BACKEND_API_URL missing from the environment');
 }
 
 await loadSecrets({ secrets: ['FIREBASE_SERVICE_ACCOUNT_JSON', 'FIREBASE_PROJECT_ID'] });
